@@ -1,11 +1,9 @@
 ---
 layout: post
-title:  "테스트"
-date:   2021-11-26
-categories: java
+title: hello!
+author: authorman
+categories: [test]
+tags: [ttset]
 ---
-
-## hello
-
-### how are you?
+hello. please i hope it works well
 

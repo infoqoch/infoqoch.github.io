@@ -1,19 +1,17 @@
-theme: monophase
-
-plugins:
-  - jekyll-remote-theme
-  - jekyll-feed
-  - jekyll-paginate
-  - jekyll-seo-tag
-
-remote_theme: zivhub/monophase@main
-
 title: infoqoch blog
 tagline: Personal Blog Page
 author:
   name: infoqoch
-  url: infoqoch.githup.io
+  url: infoqoch.github.io
+
+plugins:
+  - jekyll-feed
+  - jekyll-paginate
+  - jekyll-seo-tag
+
+# Build Settings
 
 paginate: 5
+
 tags_path: /tags/
 categories_path: /categories/

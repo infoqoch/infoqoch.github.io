@@ -1,8 +1,8 @@
 - title: About
   url: /about/
-- title: Archive
-  url: /archive/
+- title: Years
+  url: /years/
 - title: Categories
   url: /categories/
-- title: posts
-  url: /posts/
+- title: Tags
+  url: /tags/
