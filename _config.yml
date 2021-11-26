@@ -2,7 +2,18 @@ theme: monophase
 
 plugins:
   - jekyll-remote-theme
+  - jekyll-feed
+  - jekyll-paginate
+  - jekyll-seo-tag
 
 remote_theme: zivhub/monophase@main
 
-title: 방가방가!
+title: infoqoch blog
+tagline: Personal Blog Page
+author:
+  name: infoqoch
+  url: infoqoch.githup.io
+
+paginate: 5
+tags_path: /tags/
+categories_path: /categories/
