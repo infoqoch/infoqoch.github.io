@@ -1,0 +1,6 @@
+- title: Email
+  url: mailto:infoqoch@gmail.com
+  icon: fas fa-envelope
+- title: GitHub
+  url: https://github.com/infoqoch
+  icon: fab fa-github
