@@ -28,7 +28,7 @@ if(obj != null){
 void 단순하며_이상적인_optional_사용() {
     OpVo vo = new OpVo();
     vo.setTarget("hi");
-    Optional<String> optional = vo.getTarget(); // <= return Optional.ofNullable(this.target); 
+    Optional<String> optional = vo.getTarget();
     optional.ifPresent(System.out::println);
 }
 
@@ -49,6 +49,7 @@ class OpVo {
 ## 그 외 사용 패턴들 
 - 스트림으로 사용 가능하다.
 - null 일 경우 원하는 객체를 생성하여 주입 가능하다. 
+  
 ```java
 @Test
 void 없을경우_다른값으로_데이타타입_입력() {
@@ -68,6 +69,5 @@ void 스트림_사용() {
     boolean boo = optional.stream().anyMatch(s -> s.contains("k"));
     System.out.println(boo);
 }
-
 
 ```

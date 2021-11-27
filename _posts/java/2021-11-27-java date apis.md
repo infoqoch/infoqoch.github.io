@@ -7,9 +7,6 @@ categories: [java]
 tags: [java]
 ---
 
-## 자바의 date api
-- 자바에는 date 와 관련한 매우 다양한 api가 존재한다. 이에 대하여 정리하였다.
-
 ## java 8 이전의 date api 의 문제
 ### 가변성과 비일관성
 - Date 객체의 경우 getTime() 메서드에서 기계를 위한 시간 EPOCK 이 출력된다. 
