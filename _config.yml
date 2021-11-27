@@ -1,8 +1,8 @@
-title: infoqoch blog
-tagline: Personal Blog Page
+title: infoqoch's
+tagline: 개발 블로그
 author:
   name: infoqoch
-  url: infoqoch.github.io
+  url: https://infoqoch.github.io
 
 plugins:
   - jekyll-feed
@@ -11,7 +11,7 @@ plugins:
 
 # Build Settings
 
-paginate: 5
+paginate: 30
 
 tags_path: /tags/
 categories_path: /categories/
