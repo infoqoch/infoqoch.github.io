@@ -3,6 +3,8 @@ tagline: 개발 블로그
 author:
   name: infoqoch
   url: https://infoqoch.github.io
+  
+url: https://infoqoch.github.io
 
 plugins:
   - jekyll-feed
