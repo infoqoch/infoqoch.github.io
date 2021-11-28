@@ -2,7 +2,6 @@
 layout: post
 title: 스프링부트와 Rest api, json
 author: infoqoch
-last_modified_at: 2021-11-27 23:19:44
 categories: [spring]
 tags: [spring, rest, json]
 ---

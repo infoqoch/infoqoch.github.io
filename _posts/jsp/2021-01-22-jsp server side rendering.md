@@ -2,7 +2,6 @@
 layout: post
 title: Servlet JSP 와 서버사이드 렌더링
 author: infoqoch
-last_modified_at: 2021-11-27 22:33:52
 categories: [jsp]
 tags: [jsp, servlet, frontend]
 ---
