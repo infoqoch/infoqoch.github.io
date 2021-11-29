@@ -4,8 +4,6 @@ author:
   name: infoqoch
   url: https://infoqoch.github.io
   
-url: https://infoqoch.github.io
-
 plugins:
   - jekyll-feed
   - jekyll-paginate

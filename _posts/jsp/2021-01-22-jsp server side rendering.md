@@ -3,7 +3,7 @@ layout: post
 title: Servlet JSP 와 서버사이드 렌더링
 author: infoqoch
 categories: [jsp]
-tags: [jsp, servlet, frontend]
+tags: [jsp, servlet]
 ---
 
 ### servlet이란?
