@@ -75,3 +75,28 @@ public class ApplicationListenerAfter implements ApplicationListener<Application
     }
 }
 ```
+
+
+### 무한 루프와 CommandLineRunner vs ApplicationRunner
+- 이전에 텔레그램 봇을 만들면서 request 를 받을 while(true) 가 필요로 했다.
+- 그 당시 검색을 통해 CommandLineRunner 를 배웠고, 이것을 사용하였다.
+- 그런데 이때 문제는 CommandLineRunner가 while(true) 를 할 때 그외 어떤 조작도 어플리케이션에 입력되지 않았다. 
+- 하지만 ApplicationRunner 와 위의 리스너들을 사용한 결과, while(true) 임에도 불구하고 다른 컨트롤러를 호출하는 등 명령이 가능했다.
+- 이유는 무엇일까? 멀티스레드의 문제였을까? 
+- 이러한 문제에 의해서라도 ApplicationRunner 을 사용할 이유가 있어 보인다.
+
+```java
+@Component
+public class CommandLineRunnerAndArgs implements CommandLineRunner {
+    @Override
+    public void run(String... args) throws Exception {
+
+        System.out.println("start infinitive loop!");
+        while (true){
+            Thread.sleep(1000);
+            System.out.println("looping");
+
+        }
+    }
+}
+```
