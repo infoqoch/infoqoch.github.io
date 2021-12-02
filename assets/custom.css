@@ -1,1 +1,9 @@
 img.aligncenter{display:block;margin:0 auto}
+
+*{ 
+    font-family: 'Nanum Gothic', sans-serif;
+    font-family: 'Nanum Gothic Coding', monospace;
+}
+pre {
+    font-size: 0.9em;
+}
