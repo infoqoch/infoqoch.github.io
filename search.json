@@ -10,7 +10,9 @@ layout: none
       "tags"     : "{{ post.tags | join: ', ' }}",
       "url"      : "{{ site.baseurl }}{{ post.url }}",
       "date"     : "{{ post.date }}",
-      "content"  : "{{ post.content | filtersss }}"
+      "content"  : "{{ post.content |strip_newlines|strip_html|XML_Escape|lstrip | remove:'"' | remove:'<' | remove:'>' |  remove:'@' | remove:'	' | remove:'$' | remove:'“' | remove:'\' }}"
     } {% unless forloop.last %},{% endunless %}
   {% endfor %}
 ]
+
+
