@@ -109,9 +109,10 @@ public class CustomLocalDateTimeSerializer extends JsonSerializer<LocalDateTime>
 }
 ```
 
-## PropertyNamingStrategy 을 통한 네이밍 문법 설정
+## PropertyNamingStrategy 와 Visibility 를 통해 어너테이션의 제거
+- JsonProperty 의 역할은 1) json으로의 직렬화-역직렬화 대상임을 명시하며 2) json의 프로퍼티의 명칭을 정의한다. 
 - ObjectMapper를 설정하여 네이밍문법의 변환을 자동으로 수행할 수 있다. `setPropertyNamingStrategy` 매서드를 사용한다. 이를 통해 JsonProperty을 생략한다.
-- 추가적인 세팅을 통해 json 의 바인딩 대상을 전체로 한다. `setVisibility`을 사용한다. 
+- `setVisibility` 를 통해 모든 필드가 json의 직렬화 대상임을 명시한다. 
 
 ```java
 @Builder
@@ -205,7 +206,7 @@ void 역직렬화() throws JsonProcessingException {
 
 ```
 
-## json의 모든 프로퍼티를 역직렬화 할 필요는 없다. JsonIgnoreProperties
+## json의 프로퍼티에 대응하는 필드값의 구현 필요 여부를 설정. JsonIgnoreProperties
 - ObjectMapper json의 프로퍼티 전체를 pojo 로 변환한다. 이때 모든 프로퍼티스에 대응하는 필드가 있어야 한다. 그렇지 않으면 예외를 던진다. 
 - 이를 해소하기 위하여 `@JsonIgnoreProperties(ignoreUnknown = true)` 을 사용하거나 `configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)` 를 사용한다.
 
@@ -316,3 +317,45 @@ public class ObjectMapperTest{
 > - https://github.com/HomoEfficio/dev-tips/blob/master/Java8-LocalDateTime-Jackson-%EC%A7%81%EB%A0%AC%ED%99%94-%EB%AC%B8%EC%A0%9C.md*/
 > - https://dumdildor.tistory.com/13*/
 > - https://www.baeldung.com/jackson-object-mapper-tutorial
+
+
+### 직렬화 때 비어있는 필드를 json으로 변환하지 않는다.
+- 내용 다 끝나고 이렇게 추가해서 좀 그렇지만ㅠ 
+- 직렬화할 때 필드값이 null 이거나 "" 인 경우가 있다. 이런 프로퍼티는 `setSerializationInclusion`을 통해 제거할 수 있다. 
+
+```java
+@Test
+void pojo에_없는_필드값_프로퍼티로_안넘기기() throws JsonProcessingException {
+    // given
+    class Tester{
+        private String name;
+        private String address;
+
+        public Tester(String name) {
+            this.name = name;
+        }
+    }
+
+    final Tester kim = new Tester("kim");
+
+    // when
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+
+    // then
+    final String json = objectMapper.writeValueAsString(kim);
+    System.out.println(json);
+    assertThat(json).contains("address");
+
+
+    // when
+    ObjectMapper objectMapper2 = new ObjectMapper();
+    objectMapper2.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+    objectMapper2.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+    // then
+    final String json2 = objectMapper2.writeValueAsString(kim);
+    System.out.println(json2);
+    assertThat(json2).doesNotContain("address");
+}
+```
