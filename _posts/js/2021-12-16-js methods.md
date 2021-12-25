@@ -43,18 +43,6 @@ const substr = s.substr(2,8);
 console.log(substr); // 2부터 8개를 추출한다.
 ```
 
-### 문자열 비교
-- 문자열을 비교할 경우 아스키코드를 기준으로 비교한다.
-
-```js
-
-if('a'>'c'){
-  console.log('a는 c보다 크다')
-}else{
-  console.log('a는 c보다 작다')
-}
-```
-
 ## 배열
 ### concat
 - 배열을 합친다.

@@ -1,11 +1,77 @@
 ---
 layout: post
 author: infoqoch
-title: js 생성자를 통한 객체 생성과 조작, 심볼릭
+title: js 생성자를 통한 객체 생성과 조작
 last_modified_at: 
 categories: [js]
 tags: [js]
 ---
+
+
+## 객체
+### 선언과 조작
+- JS의 객체 선언은 매우 간단하다.
+
+```js
+let kim = new Object();
+kim.age = 12;
+kim.name = '김길동'
+
+console.log(kim);
+```
+
+- 아래는 더 쉽다.
+
+```js
+let kim = {
+  name:'김길동',
+  age:20
+}
+    
+console.log(kim);
+```
+
+- 객체의 각각의 값을 properties라고 한다. properties의 입력과 삭제, 수정은 다음과 같다.
+
+
+```js
+kim.city = '서울';
+kim.age = 15;
+delete kim.age;
+
+console.log(kim)
+```
+
+### 매서드
+- 객체의 함수를 매서드라 한다.
+- 객체의 프로퍼티스를 사용하기 위해서는 반드시 this 를 사용해야 한다. this를 사용하지 않는 경우 전역변수를 사용한다.
+
+```js
+let kim = {
+  name:'김길동',
+  age:20,
+  print : function(){
+    console.log(`저의 이름은 ${this.name}이며 나이는 ${this.age}입니다.`)
+  }
+}
+
+kim.print()
+```
+
+```js
+const kim = {
+  name:'김길동',
+  age:20,
+  print : function(){
+    console.log('저의 이름은 '+ name +'입니다.') // "저의 이름은 JS Bin Output 입니다." // jsbin.com 을 사용중이며 name 이 전역변수로 있는 것 같다. 
+    console.log('나이는 ' + age + '입니다.') // ReferenceError: age is not defined
+
+  }
+}
+
+kim.print()
+
+```
 
 ## 생성자와 객체
 ### 생성자 함수의 구현
@@ -73,6 +139,7 @@ console.log(cloneUser2)
 
 ```
 
+### 객체 합치기
 - 첫 번째 매개변수로 다른 객체의 프로퍼티스가 붙는다.
 
 ```js
@@ -94,6 +161,8 @@ console.log(user)
 ```
 
 ### 객체의 keys 와 values 추출
+- keys와 values를 추출한다.
+- entries는 key와 value를 배열로 반환한다.
 
 ```js
 function User(name, age){
@@ -110,15 +179,10 @@ const values = Object.values(user);
 console.log(values)
 
 const entries = Object.entries(user);
-console.lob(entries) // 에러
-
+console.log(entries)
 ```
 
-- entries 에서 에러가 발생한다.
-- this를 window로 받아드린다. 이 부분은 차후 학습이 필요해 보인다.
-
 ```js
-
 const user = {
     name : 'kim',
     age : 12,
@@ -137,31 +201,4 @@ console.log(fromEntries)
 //   name: "kim"
 // }
 
-```
-
-## 심볼 Symbol
-- 심볼은 유일한 식별자임을 보장한다.
-- 심볼을 선언하고 그 값을 특정 객체의 변수나 메서드로 주입 가능하다.
-- 심볼은 keys 나 values 등을 추출하는 메서드를 통해 검출되지 않는다. 그러므로 기존에 존재하는 객체를 유지하며 원하는 값이나 기능을 넣을 수 있다. 
-- 특히, 객체는 생성 이후 프로퍼티를 넣을 수 있지만, 메서드는 넣을 수 없다. 심볼에 메서드를 대입하고, 그 값을 객체에 주입할 수 있다. 그러므로 기존의 코드를 수정하기 어렵거나 혹은 외부 라이브러리로 사용하며, 메서드의 추가가 필요한 경우, 효과적으로 사용할 수 있다. 
-
-```js
-function User(name, age){
-    this.name = name;
-    this.age = age;
-}
-
-const user = new User('Kim', 12);
-
-// 메서드를 주입할 수 없다. 
-// user.hello() = function(){
-//   console.log("hi");
-// }
-
-const hello = Symbol('method to greet');
-user.hello = function(){
-    console.log("hi");
-}
-
-user.hello();
 ```
