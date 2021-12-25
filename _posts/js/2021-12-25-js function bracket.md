@@ -28,6 +28,7 @@ console.log(fn())
 - fn 을 출력할 경우 함수 그 자체를 출력한다. 반대로 fn()은 해당 함수를 실행하고 발생한 결과값을 출력한다. 
 - 그러므로 특정 변수가 해당 함수를 가리키게 만들고 싶다면 fn을 사용하며, 해당 함수를 수행하고 싶으면 소괄호를 붙여서 fn()이라 해야 한다. 
 - fn()에 변수를 대입하면 어떻게 될까? `const value = fn()` 그것은 `fn()`의 리턴 값인 `"fn의 응답값"`을 대입한다. 
+- 자바로 치면 전자는 참조변수의 복제, 그러니까 주소값의 복제와 유사한 것 같다. 후자의 경우 참조변수의 함수를 수행한 결과값을 해당 변수에 대입하는 것과 유사하다.
 
 ```js
 const fn =  function(){
@@ -40,7 +41,7 @@ console.log(ref) // fn()의 리턴값인 "fn의 응답값" 을 출력한다.
 
 ## onload 와 소괄호
 - window.onload 를 사용할 때, 우리는 대괄호가 없이 사용한다. 이것은 어떻게 봐야 하는가?
-- 아래의 코드를 살펴보자. 내가 기대하는 것은 html 파일을 모두 읽고 
+- 아래의 코드를 살펴보자. 내가 기대하는 것은 html 파일을 모두 읽고 해당 함수를 가장 마지막에 수행하는 것이다. 
 
 ```html
 <!DOCTYPE html>
@@ -136,16 +137,15 @@ console.log(ref) // fn()의 리턴값인 "fn의 응답값" 을 출력한다.
 - 그러므로 `window.onload = addList("소괄호 사용!")` 란 사실,
   - `addList("소괄호 사용!");`를 호출하여 "소괄호 사용!" 을 리스트에 넣고
   - 그것의 리턴값을 onload 프로퍼티에 주입하는 방식이다. 
-  - 그러니까, 모든 document가 로딩된 후 호출되는 `window.onload();` 때 어떤 행위를 하는 것을 보장하지 않는다.
+  - 하지만 "SUCCESS"를 `window.onload();`를 통해 수행할 수 없다.
 
-- 하지만 `onload = addList` 의 경우, `window.onload();` 가 호출되는 시점에서의 행위를 정의한다. 함수의 주소값을 주입하기 때문이다.
+- 반대로 `onload = addList` 는 onload의 변수가 특정 함수를 수행하도록 주소값을 전달한다. 그러니까 모든 html과 스크립트가 로딩 된 후, `window.onload();` 가 호출되는 시점에서의 행위를 정의한다.
 - 실제로 `onload = addList` 으로 작성한 후, 브라우저 -> F12 -> 콘솔 에 `window.onload`를 명령하면 아래의 함수가 출력됨을 확인할 수 있다. 
 
-```js
+```console
 > window.onload;
-
-\< ƒ addList(value){ let list = document.createElement("li");list.append(document.createTextNode(value));let unorderedList = document.querySelector('#unordered-list'…
+< ƒ addList(value){ let list = document.createElement("li");list.append(document.createTextNode(value));let unorderedList = document.querySelector('#unordered-list'…
 
 > window.onload();
-\< 'SUCCESS' // 그리고 list가 추가된다.
+< 'SUCCESS' // 그리고 list가 추가된다.
 ```
