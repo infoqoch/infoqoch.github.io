@@ -2,8 +2,8 @@ $sm-screen: 35.5rem;
 // $md-screen: 48rem;
 // $lg-screen: 64rem;
 // $xl-screen: 80rem;
-$md-screen: 55rem;
-$lg-screen: 65rem;
+$md-screen: 58rem;
+$lg-screen: 70rem;
 $xl-screen: 80rem;
 
 :root {
@@ -24,8 +24,8 @@ $xl-screen: 80rem;
   /**
    * Color
    */
-  --body-bg-color: var(--oc-white);
-  --body-color: var(--oc-gray-9);
+   --body-color: var(--oc-gray-9);
+   --body-bg-color: var(--oc-gray-1);
   --code-bg-color: var(--oc-gray-1);
   --heading-color: var(--oc-black);
   --border-color: var(--oc-gray-4);
