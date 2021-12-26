@@ -19,9 +19,9 @@ layout: default
 
       <p class="post-excerpt">
         {% if post.description %}
-          {{ post.description | strip_html }}
+          {{ post.description | strip_html | truncatewords: 100, '...' }}
         {% else %}
-          {{ post.excerpt | strip_html }}
+          {{ post.excerpt | strip_html | truncatewords: 100, '...' }}
         {% endif %}
       </p>
     </div>
