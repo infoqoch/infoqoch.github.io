@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: js dom 과 node
+title: js dom, node 의 기초적인 활용
 categories: [js]
 tags: [js]
 ---
