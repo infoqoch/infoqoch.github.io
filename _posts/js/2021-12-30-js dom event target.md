@@ -1,15 +1,15 @@
 ---
 layout: post
 author: infoqoch
-title: js dom event target
+title: js dom event와 target, dispatch
 categories: [js]
 tags: [js]
 ---
 
 ## 들어가며
-- js에서는 이벤트를 발생시킨 element를 출력할 수 있다. 이는 다음처럼 표현한다. `something.function(e){}` 이 코드에서 e 가 event이며, e.target 으로 접근한다. e.nodeName; 으로 해당 element를 확인할 수 있다. 
-- 이벤트의 타겟과 실제 이벤트의 대상이 다를 수 있다. `parent.function(e){e.target.nodeName}` 에서 nodeName의 값이 parent의 자식이 될 수 있다. 
-- 이처럼 선택한 이벤트가 상위의 부모로 전파가 되고, 부모로 설정한 이벤트가 반대로 하위의 자식에게 영향을 미친다. 이를 이벤트 버블링이라 한다.
+- 이벤트는 버블링이 된다. 그러니까 노드의 최하단을 클릭했을 경우, 그것은 동시에 그것의 부모 노드를 동시에 클릭한 것과 같다. li -> ul -> div -> body -> html. 이를 이벤트 버블링이라 하며 이벤트의 전파라 한다. 
+- 이러한 전파 덕분에 부모는 특정 자식에 대한 일괄적인 이벤트를 할 수 있다. click을 하고 그것을 처리하는 노드가 부모라 하더라도, 클릭이란 이벤트 자체는 최하단부터 전파되기 때문에, 최하단의 노드가 무엇인지 부모는 알 수 있다. 
+- `someNode.onclick = function(e){}` 과 같은 이벤트가 있다고 가정하면, 해당 클릭 이벤트를 발생한 최하단의 노드를 e.target 를 통해 접근할 수 있다. 
 - 이벤트 버블링의 장점은 중복되는 명령을 단 하나의 명령으로 끝낼 수 있다. 단점은 영향력이 크기 때문에 언제나 제한하는 방향으로 해야 한다.
 
 
@@ -154,7 +154,6 @@ tags: [js]
             };
         };
 
-
         document.querySelector('body').onclick=function(e){
             if(e.target.nodeName!="TD")
                 return;
@@ -174,4 +173,45 @@ tags: [js]
         </script>
 </body>
 </html>
+```
+
+## dispatcher
+- 특정 이벤트를 다른 이벤트에 연결할 수 있다. 
+
+```html
+<style>
+    #input-file{
+        display:none;
+    }
+    .file-button{
+        background-color: aqua;
+        border: 1px solid darkcyan;
+    }
+    .file-button:hover{
+        background-color: aquamarine;
+    }
+</style>
+<input type="file" id="input-file">
+<span id="file-button" class="file-button">파일선택</span>
+
+<script>
+    var fileBtn = document.getElementById('file-button');
+    var inputFile = document.getElementById('input-file'); 
+
+    fileBtn.addEventListener("click", function(){ // 해당 노드에 클릭 이벤트를 등록한다.
+
+        // 실제 이벤트를 정의한다. 아래는 최신 방식이지만 익스플로러는 지원하지 않는다. 
+        // var event = new MouseEvent("click", { 
+        //     'view':window,
+        //     'bubble':true,
+        //     'cancelable':true,
+        // });
+
+        // 익스플로러가 지원하는 형태이다.
+        var event = document.createEvent('MouseEvent');
+        event.initEvent('click', true,true)
+
+        inputFile.dispatchEvent(event); // inputFile 이 실행(트리거)되는 이벤트를 추가한다. 
+    });
+</script>
 ```
