@@ -389,6 +389,87 @@ where
     )
 ```
 
+## 3번 이상 연속된 숫자 구하기
+- https://leetcode.com/problems/human-traffic-of-stadium/
+
+### 요구사항
+
+```text
+Input: 
+Stadium table:
++------+------------+-----------+
+| id   | visit_date | people    |
++------+------------+-----------+
+| 1    | 2017-01-01 | 10        |
+| 2    | 2017-01-02 | 109       |
+| 3    | 2017-01-03 | 150       |
+| 4    | 2017-01-04 | 99        |
+| 5    | 2017-01-05 | 145       |
+| 6    | 2017-01-06 | 1455      |
+| 7    | 2017-01-07 | 199       |
+| 8    | 2017-01-09 | 188       |
++------+------------+-----------+
+Output: 
++------+------------+-----------+
+| id   | visit_date | people    |
++------+------------+-----------+
+| 5    | 2017-01-05 | 145       |
+| 6    | 2017-01-06 | 1455      |
+| 7    | 2017-01-07 | 199       |
+| 8    | 2017-01-09 | 188       |
++------+------------+-----------+
+Explanation: 
+The four rows with ids 5, 6, 7, and 8 have consecutive ids and each of them has >= 100 people attended. Note that row 8 was included even though the visit_date was not the next day after row 7.
+The rows with ids 2 and 3 are not included because we need at least three consecutive ids.
+```
+
+### 해소
+- 날짜는 함정으로 id만 봐야 한다.
+- 사람의 숫자가 100명을 넘는 id를 추출하고, 아래의 조건을 만족해야 한다. 
+  - 연속된 숫자가 앞에 두 개가 있거나
+  - 뒤에 두 개가 있거나
+  - 앞 뒤로 두 개가
+- 정상 작동하고, 다른 쿼리 대비 88퍼센트나 빠르지만, 아 쿼리 자체가 아름답지는 않다. 
+- 다른 사람들의 솔루션을 보니까, 대체로 테이블 3개를 만드는 것 까지는 유사하기 때문에 그냥 넘어간다! 
+
+```sql
+select
+    *
+from 
+    stadium
+where 
+    id in
+    (select 
+        *
+    from
+        (select id from stadium s where people >= 100) tb
+    where 
+        (select 
+            count(1)
+        from 
+            (select id from stadium s where people >= 100) tb3
+         where
+            tb3.id in (tb.id - 1,  tb.id + 1)
+        ) > 1
+        or
+        (select 
+            count(1)
+        from 
+            (select id from stadium s where people >= 100) tb1
+         where
+            tb.id between tb1.id + 1 and tb1.id + 2
+        ) > 1
+        or
+        (select 
+            count(1)
+        from 
+            (select id from stadium s where people >= 100) tb2
+         where
+            tb2.id between tb.id + 1 and tb.id + 2
+        ) > 1
+    )
+```
+
 ## 나아가며
 - 기본적으로 나는 join을 위주로 사용한다. 이렇게 사용하는 이유는 일단 테이블을 하나 만들고 테이블 간 비교를 하는 것이 더 직관적이기 때문이다. 그러나 위의 best practice를 보면 대체로 join 보다 where를 사용한다. 경우에 따라 join과 where 중 빠른 것이 다르다. 대체로 각 레코드마다 조작을 하는 경우 join 으로 새로운 테이블을 만드는 것이 더 빠르다. 각 레코드를 조작할 필요가 없이 특정 값으로 제외하는 방향을 선택한다면 where 문이 더 빠른 것 같다. 
 - 릿코드에서 solution 이 없는 경우 문제가 이상한 경우가 있다. 그러므로 solution 이 있는 문제를 풀자! 
