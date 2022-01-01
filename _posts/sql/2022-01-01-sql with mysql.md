@@ -1,0 +1,132 @@
+---
+layout: post
+author: infoqoch
+title: sql mysql with 와 가상 테이블 생성
+categories: [sql]
+tags: [sql, mysql]
+---
+
+## 들어가며
+- leetcode 에서 sql 문제를 풀면서 다른 문제도 풀고 싶단 생각을 했다. 그리고 프로그래머스로 갔다. 전반적인 내용이 매우 쉬웠는데 한 문제에서 걸렸다. 
+- [입양 시각 구하기(2)](https://programmers.co.kr/learn/courses/30/lessons/59413)
+- 위의 문제의 특징은 검색하는 테이블의 레코드에는 시간이 8시부터 19시까지 밖에 없는데, 0시부터 23시까지 데이타를 추출하고 없는 값은 0으로 넣어야 한다.
+- 아마 이 문제에 관련한 블로그들이 매우 많았고 다들 다소 멘붕했던 것 같다. 그리고 일관되게 아래의 쿼리로 해결하였다. 
+
+```SQL
+SET @HOUR = -1;
+SELECT (@HOUR := @HOUR +1) AS HOUR,
+    (SELECT COUNT(HOUR(DATETIME)) 
+    FROM ANIMAL_OUTS 
+    WHERE HOUR(DATETIME)=@HOUR) AS COUNT 
+    FROM ANIMAL_OUTS
+WHERE @HOUR < 23;
+```
+
+- 만약 내가 위의 쿼리를 이해했다면 이 블로그의 제목은 '유저 변수와 가상 테이블 생성'이 될 테다. 그러나 나는 위의 코드를 이해하지 못했고, 블로그를 검색해도 이에 대한 설명이 잘 되지 않았고, MYSQL API의 user variables 에 대한 설명은 너무 적었다.
+- 그래서 인터넷에 mysql 로 연속된 시간을 구하는 쿼리를 검색했고, 그 방법으로 with를 배웠다. 돌고 돌아 어떻게 with 에 대한 학습을 하였고, 그 내용을 정리한다.
+
+
+## with란?
+- with 는 테이블을 만든다. 아래의 쿼리를 통해 테이블이 두 개 생성된 것을 확인할 수 있다.
+
+```sql
+with
+    tb1 as (select 'kim' as 'name', 12 as age from dual),
+    tb2 as (select 'lee' as 'name', 40 as age from dual)
+select *
+from tb1
+union
+select *
+from tb2;
+
+-- +----+---+
+-- |name|age|
+-- +----+---+
+-- |kim |12 |
+-- |lee |40 |
+-- +----+---+
+```
+
+- with 에 칼럼명을 미리 설정할 수 있다.
+
+```sql
+with users (name, age) as
+    (
+        select 'kim', 15
+        union all
+        select 'lee', 55
+    )
+select * from users;
+```
+
+## with recursive 란?
+- with recursive 는 where 의 조건에 도달할 때까지 테이블을 생성한다.
+
+```sql
+WITH RECURSIVE hours (n) AS
+   (
+       SELECT 0
+       UNION ALL
+       SELECT n + 1 FROM hours WHERE n < 23
+   )
+SELECT * FROM hours;
+
+-- +--+
+-- |n |
+-- +--+
+-- |0 |
+-- |1 |
+-- |2 |
+-- |3 |
+-- |4 |
+-- |5 |
+-- |6 |
+-- |7 |
+-- |8 |
+-- |9 |
+-- |10|
+-- |11|
+-- |12|
+-- |13|
+-- |14|
+-- |15|
+-- |16|
+-- |17|
+-- |18|
+-- |19|
+-- |20|
+-- |21|
+-- |22|
+-- |23|
+-- +--+
+```
+
+## 입양 시각 구하기(2) 의 정답은?
+- 드디어 0부터 23까지의 연속된 숫자를 구할 수 있었다.
+- 이를 통해 생성한 쿼리는 다음과 같다.
+
+```sql
+select
+    h.n 'hours'
+    , ifnull(a.count, 0)
+from 
+    (SELECT
+        hour(datetime) 'hours'
+        , count(1) count    
+    from
+        animal_outs
+    group by
+        hour(datetime)
+     ) a
+right join(
+    WITH RECURSIVE hours (n) AS
+       (
+           SELECT 0
+           UNION ALL
+           SELECT n + 1 FROM hours WHERE n < 23
+       )
+    SELECT * FROM hours) h
+on
+    a.hours = h.n
+order by h.n asc;
+```
