@@ -12,7 +12,7 @@ tags: [sql, mysql]
 - 해당 테이블의 레코드에는 시간이 8시부터 19시까지 밖에 없는데, 0시부터 23시까지 데이타를 right join 하여, 테이블에 없는 데이터를 0으로 넣어야 하는 문제였다. 
 - 아마 이 문제에서 많이들 막힌 것 같다. 관련한 블로그 게시글이 많았고, 내가 본 모든 블로그는 아래의 쿼리로 해결하였다. 
 
-```SQL
+```sql
 SET @HOUR = -1;
 SELECT (@HOUR := @HOUR +1) AS HOUR,
     (SELECT COUNT(HOUR(DATETIME)) 
