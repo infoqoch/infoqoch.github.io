@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: 컴퓨터 시스템의 구조 : 프로그램의 실행
+title: 컴퓨터 시스템의 구조, 프로그램의 실행
 categories: [cs]
 tags: [cs, os]
 ---
