@@ -15,5 +15,5 @@ pre {
 #footer-social-column, .social-icons{
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: center;
 }
