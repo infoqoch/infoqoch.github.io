@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: 입구가 두 개인 스택 구현하기 프리티 프린터
+title: 입구가 두 개인 스택 구현하기, 스택을 위한 프리티 프린터
 categories: [algorithm]
 tags: [algorithm, java]
 ---

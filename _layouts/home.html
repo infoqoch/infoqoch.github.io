@@ -15,7 +15,7 @@ layout: default
         </a>
       </h2>
 
-      <time datetime="{{ post.date | date_to_xmlschema }}" class="post-meta">{{ post.date | date_to_string }}</time>
+      <time datetime="{{ post.date | date_to_xmlschema }}" class="post-meta">{{ post.date | date: "%Y-%m-%d" }}</time>
 
       <p class="post-excerpt">
         {% if post.description %}
