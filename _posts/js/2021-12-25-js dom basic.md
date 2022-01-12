@@ -165,8 +165,8 @@ tags: [js]
 </body>
 </html>
 ```
-
 - 이때는 addEventListener를 통해 문제를 해소할 수 있다.
+- "load" 혹은 "DOMContentLoaded" 둘 중 하나를 사용 가능하다. 전자는 모든 소스가 로딩된 이후를 의미하여 후자는 DOM 트리 생성 직후를 의미한다. 
 
 ```html
 <!DOCTYPE html>
