@@ -359,3 +359,13 @@ void pojo에_없는_필드값_프로퍼티로_안넘기기() throws JsonProcessi
     assertThat(json2).doesNotContain("address");
 }
 ```
+
+## 추가, ReponseEntity 와 ObjectMapper
+- ReponseEntity를 사용하는데 camel case 와 관련한 에러가 발생했다. 
+- 예외의 출처가 ObjectMapper와 같은 `com.fasterxml.jackson.databind` 에서 발생한 에러이다. 
+- 앞서의 ObjectMapper 를 bean으로 등록하여 해소할 수 있다. 
+
+## 추가, TypeReference
+- 만약 객체가 제너릭으로 존재하거나 컬렉션일 경우 단순하게 token type 만 기입해서는 바인딩되지 않는다. TypeReference을 사용해야 한다. 
+- `objectMapper.readValue(responseJson, new TypeReference<>(){});`
+  

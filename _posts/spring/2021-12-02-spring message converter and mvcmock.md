@@ -35,7 +35,7 @@ public class SimpleController {
 }
 ```
 
-## 테스트코드
+## MvcMock와 테스트코드
 - RestController 에 대한 테스트코드는 아래와 같이 작성한다. 
 - MvcMock 를 사용한다. MockMvc의 경우 인코딩의 문제가 발생하기 때문에 init과 같이 세팅한다.
 
@@ -84,4 +84,24 @@ public class SimpleControllerTest {
 	}
 
 }
+```
+
+## MockMvc의 데이타 검증
+- Mock으로 받은 데이터의 검증은 기대하는 메시지로 응답하는지로 확인할 수 있다고 한다. 
+- 그 방법은 다음과 같다. 응답값을 String으로 전환하고, 해당 값을 조작하는 방식이다. json으로 받은 경우 ObjectMapper를 통해 pojo로 변환 가능하다. 
+
+```java
+String requestContent = objectMapper.writeValueAsString(insertDTO);
+
+mockMvc.perform(post("/dictionary")
+				.content(requestContent)
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON)
+		)
+		.andExpect(status().isOk()) // 200을 기대한다. 
+		.andDo(print()) // 어떤 값이 왔는지 확인하기 위하여 콘솔에 값을 출력한다.
+		.andReturn() 
+		.getResponse()
+		.getContentAsString()  // 응답값을 string으로 만든다. 
+		.contains("정상적으로 등록되었습니다"); // string에 다음의 값이 있는지를 검색한다. 
 ```
