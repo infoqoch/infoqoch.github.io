@@ -86,7 +86,25 @@ select * from tb;
 ```
 
 - 위와 같이 위에서부터 아래로 인덱스를 부여한다. 그리고 그 값과 인덱스를 뺀다. 그리고 그 결괏값이 동일한 레코드가 바로 같은 그룹이 된다. 
-- 이러한 해결 방법을 보고 사실 많이 놀랐다. 
+- 각각의 그룹에서 log_id의 최댓값과 최솟값을 구하면 된다.
+- 아주 탁월한 방법이었고, 사실 많이 놀랐다. 
 
 ## group by with minus operation
 - 더 놀란 것은, 이러한 그룹핑을 group by 를 통해 가능하다.
+
+```sql
+select 
+    min(log_id) as start_id
+    , max(log_id) as end_id
+FROM(
+    SELECT 
+        log_id
+        , ROW_NUMBER() OVER(ORDER BY log_id) as num 
+        FROM Logs
+) a
+GROUP BY log_id - num
+```
+
+- 위의 코드에서 `log_id - num` 을 할 경우 000,33,4가 나온다. 이 값으로 바로 그룹핑이 가능하다. 
+
+
