@@ -6,9 +6,6 @@ categories: [sql]
 tags: [sql, mysql]
 ---
 
-## 들어가며
-- leetcode의 sql 문제를 풀며 partition by 를 자주 활용하였다. 
-
 ## 각 회원 별 가장 많이 구매한 물건은?  https://leetcode.com/problems/the-most-frequently-ordered-products-for-each-customer/
 - 각 회원이 있고, 각 회원이 구매한 상품이 있다. 
 - 각 회원이 가장 많이 구매한 물품을 구한다. 
@@ -90,4 +87,67 @@ where tb.ranks = 1
 ```
 
 
-##
+## 각 통장 별 잔액 구하기 Account Balance
+- 아래의 테이블은 거래내역을 보여준다. 각 account_id는 0원으로부터 시작함을 가정한다. 거래는 입금과 출금으로 이뤄지고 해당 금액을 가진다. 각 거래마다의 잔액(balance)를 구하는 것이 과제이다. 
+
+```text
+Input: 
+Transactions table:
++------------+------------+----------+--------+
+| account_id | day        | type     | amount |
++------------+------------+----------+--------+
+| 1          | 2021-11-07 | Deposit  | 2000   |
+| 1          | 2021-11-09 | Withdraw | 1000   |
+| 1          | 2021-11-11 | Deposit  | 3000   |
+| 2          | 2021-12-07 | Deposit  | 7000   |
+| 2          | 2021-12-12 | Withdraw | 7000   |
++------------+------------+----------+--------+
+Output: 
++------------+------------+---------+
+| account_id | day        | balance |
++------------+------------+---------+
+| 1          | 2021-11-07 | 2000    |
+| 1          | 2021-11-09 | 1000    |
+| 1          | 2021-11-11 | 4000    |
+| 2          | 2021-12-07 | 7000    |
+| 2          | 2021-12-12 | 0       |
++------------+------------+---------+
+Explanation: 
+Account 1:
+- Initial balance is 0.
+- 2021-11-07 --> deposit 2000. Balance is 0 + 2000 = 2000.
+- 2021-11-09 --> withdraw 1000. Balance is 2000 - 1000 = 1000.
+- 2021-11-11 --> deposit 3000. Balance is 1000 + 3000 = 4000.
+Account 2:
+- Initial balance is 0.
+- 2021-12-07 --> deposit 7000. Balance is 0 + 7000 = 7000.
+- 2021-12-12 --> withdraw 7000. Balance is 7000 - 7000 = 0.
+```
+
+### 해결 방안
+- 입금은 금액을 양으로, 출금은 음으로 만든다. 
+- 해당 금액을 partition by를 사용하여 시간의 흐름에 따라 값을 누적한다. 이 때 sum over를 사용한다. 
+
+```sql
+with this as (
+    select 
+        account_id
+        , day
+        , case 
+            when type = 'Deposit' then amount 
+            else -amount
+            end 'amt'    
+    from transactions
+)
+select 
+    account_id
+    , day
+    , sum(amt) over(partition by account_id order by day asc) balance
+from this
+```
+
+## partition by...
+- leetcode의 sql 문제를 풀며 partition by 를 자주 활용하였다. 사실은 문제의 반절은 partition by를 활용해야 쉽게 풀 수 있는 문제로 이뤄져 있다. 
+- 이번에 공부하면서 쿼리에 대하여 단순한 절은 잘 사용하지만 복잡한 내용은 잘 모르고 사용한다는 것을 많이 느꼈다. 
+- partition by 를 통해 그룹핑을 하여 다른 그룹과 분리하여 계산 가능하다. order by 는 순서를 정한다. sum은 누적 합계를 하며, rank, row_number()는 누적 순서(i++), 갯수인 count() 등을 지원한다. 
+- 더 공부하자! 
