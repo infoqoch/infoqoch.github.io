@@ -61,6 +61,8 @@ public class InsertSortTest {
 			// 종료를 위한 코드가 필요가 없다. 자신이 삽입된 값 앞은 무조건 자신보다 작고, 정렬되어 있음을 보장하기 때문이다.
 			int target = list.get(i);
 			int idx = i;
+			// 옮길 값(list.get(i))를 임시변수(target)으로 둔다. 그리고 그 위치를 기준으로 앞으로 한 칸 씩(j--) 비교한다. 그리고 앞의 값이 자신보다 크면 뒤로 한 칸 밀어낸다(list.set(j, list.get(j-1))).
+			// 밀어내어 빈 공간은 임시변수(idx)에 저장하고, 나중에 임시변수(target)의 값을 해당 위치에 삽입한다. 
 			for(int j=i; j > 0 && list.get(j-1) > target; j--) {
 				list.set(j, list.get(j-1));
 				idx = j-1;
