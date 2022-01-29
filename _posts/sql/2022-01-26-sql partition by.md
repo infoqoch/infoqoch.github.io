@@ -146,8 +146,52 @@ select
 from this
 ```
 
+## 순서에 따른 누적값 구하기 
+- https://leetcode.com/problems/game-play-analysis-iii/
+
+### 요구 사항
+- 각 회원별로 로그인 한 각각의 날을 기준으로 해당 날까지 게임을 한 횟수의 누적값을 구한다. 
+
+```text
+Input: 
+Activity table:
++-----------+-----------+------------+--------------+
+| player_id | device_id | event_date | games_played |
++-----------+-----------+------------+--------------+
+| 1         | 2         | 2016-03-01 | 5            |
+| 1         | 2         | 2016-05-02 | 6            |
+| 1         | 3         | 2017-06-25 | 1            |
+| 3         | 1         | 2016-03-02 | 0            |
+| 3         | 4         | 2018-07-03 | 5            |
++-----------+-----------+------------+--------------+
+Output: 
++-----------+------------+---------------------+
+| player_id | event_date | games_played_so_far |
++-----------+------------+---------------------+
+| 1         | 2016-03-01 | 5                   |
+| 1         | 2016-05-02 | 11                  |
+| 1         | 2017-06-25 | 12                  |
+| 3         | 2016-03-02 | 0                   |
+| 3         | 2018-07-03 | 5                   |
++-----------+------------+---------------------+
+Explanation: 
+For the player with id 1, 5 + 6 = 11 games played by 2016-05-02, and 5 + 6 + 1 = 12 games played by 2017-06-25.
+For the player with id 3, 0 + 5 = 5 games played by 2018-07-03.
+Note that for each player we only care about the days when the player logged in.
+```
+
+### 해소
+- sum() over 를 통하여 누적값을 구한다. row_number() 가 1씩 더하는 인덱스를 구하는 것처럼, sum의 경우 그것의 인자를 누적한다. 
+
+```sql
+select 
+    player_id 
+    , event_date 
+    , sum(games_played) over(partition by player_id order by  event_date asc) games_played_so_far
+from activity
+```
+
 ## partition by...
-- leetcode의 sql 문제를 풀며 partition by 를 자주 활용하였다. 사실은 문제의 반절은 partition by를 활용해야 쉽게 풀 수 있는 문제로 이뤄져 있다. 
-- 이번에 공부하면서 쿼리에 대하여 단순한 절은 잘 사용하지만 복잡한 내용은 잘 모르고 사용한다는 것을 많이 느꼈다. 
-- partition by 를 통해 그룹핑을 하여 다른 그룹과 분리하여 계산 가능하다. order by 는 순서를 정한다. sum은 누적 합계를 하며, rank, row_number()는 누적 순서(i++), 갯수인 count() 등을 지원한다. 
-- 더 공부하자! 
+- leetcode의 sql 문제를 풀며 partition by 를 자주 활용하였다. 사실은 문제의 반절은 partition by를 활용해야 쉽게 풀 수 있는 문제로 이뤄져 있다. 코테를 위한 코딩처럼, 쿼리 테스트를 위한 쿼리절이 있는건가...!?
+- partition by는 group by와 같이 데이터를 분리하는데 사용하며, order by 는 순서를 정한다. sum, rank, row_number() 이외에 count() 등 다양한 함수를 지원한다.  
+- 이번에 공부하면서 쿼리에 대하여 단순한 절은 잘 사용하지만 복잡한 내용은 잘 모르고 사용한다는 것을 많이 느꼈다. 더 공부하자! 

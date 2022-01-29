@@ -98,3 +98,6 @@ from (
 order by tb.rt desc, tb.question_id asc 
 limit 1
 ```
+
+## 기타...
+- if, ifnull 등을 case when 과 유사하게 사용할 수 있다.
