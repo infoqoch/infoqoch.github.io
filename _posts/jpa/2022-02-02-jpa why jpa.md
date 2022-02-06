@@ -3,7 +3,7 @@ layout: post
 author: infoqoch
 title: spring jpa를 왜 사용하는가? sql 중심 개발의 문제점
 categories: [jpa]
-tags: [spring, jpa]
+tags: [jpa, java]
 ---
 
 ## 관계형 데이타베이스의 헤게모니

@@ -3,7 +3,7 @@ layout: post
 author: infoqoch
 title: jpa 와 영속성 컨텍스트
 categories: [jpa]
-tags: [jpa, spring]
+tags: [jpa, java]
 ---
 
 ## 영속성 컨텍스트란?

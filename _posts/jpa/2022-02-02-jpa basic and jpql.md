@@ -3,7 +3,7 @@ layout: post
 author: infoqoch
 title: jpa의 기본적인 활용과 JPQL 
 categories: [jpa]
-tags: [jpa, spring]
+tags: [jpa, java]
 ---
 
 ## 들어가며
