@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: jpa의 기본적인 활용과 JPQL 
+title: jpa, java 환경에서 기본 세팅, 엔티티 매니저 및 JPQL 사용하기.
 categories: [jpa]
 tags: [jpa, java]
 ---
