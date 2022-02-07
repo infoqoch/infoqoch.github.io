@@ -393,3 +393,80 @@ public class Book extends Item{
 ```java
 em.createQuery("select i from Item i where type(i)= Book ").getResultList();
 ```
+
+## CASE
+- JPQL에서는 CASE를 지원한다.
+
+```java
+Member member = new Member();
+member.setName("kim");
+member.setAge(10);
+member.setType(MemberType.ADMIN);
+em.persist(member);
+
+
+// case 사용
+final String query =
+        " select " +
+                "case when m.age <= 10 then '학생' " +
+                "     when m.age >= 60 then '경로' " +
+                "     else '일반' " +
+                "end " +
+        " from Member m ";
+final List<String> resultList = em.createQuery(query, String.class)
+        .getResultList();
+
+for (String s : resultList) {
+    System.out.println("s = " + s);
+}
+```
+
+- coalesce, nullif 등도 지원한다.
+
+```java
+Member member2 = new Member();
+member2.setName(null);
+member2.setAge(10);
+member2.setType(MemberType.ADMIN);
+em.persist(member2);
+
+String query2 = "select coalesce(m.name, '이름없음') from Member m";
+final List<String> resultList1 = em.createQuery(query2, String.class).getResultList();
+
+for (String s : resultList1) {
+    System.out.println("s = " + s);
+}
+```
+
+## 표준함수
+- JPA는 표준 함수를 제공한다. 
+- JPA 표준함수 이외에, 각 DB마다의 함수, 그리고 사용자 정의 함수까지 지원한다. 
+- DB에 의존적인 함수는 각 방언(MysqlDialect, H2Dialect)에 이미 등록되어, 바로 사용하면 된다. 사용자 정의 함수는 정의하여 사용하면 된다. 
+
+- 아래의 코드는 JPA 표준 함수 중, JPA 만 가지고 있는 함수인 size를 구현한 내용이다. 
+- 엔티티의 갯수를 구한다. 
+
+```java
+Team team = new Team();
+team.setName("teamA");
+em.persist(team);
+
+Member member = new Member();
+member.setName("kim");
+member.changeTeam(team);
+em.persist(member);
+
+Member member2 = new Member();
+member2.setName("lee");
+member2.changeTeam(team);
+em.persist(member2);
+
+em.flush();
+em.clear();
+
+String query1 = "select t.members.size from Team t";
+
+final Integer singleResult = em.createQuery(query1, Integer.class).getSingleResult();
+
+System.out.println(singleResult);
+```
