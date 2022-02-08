@@ -62,7 +62,7 @@ tags: [jpa, java]
 </project>
 ```
 
-- META-INF/persistance.xml 에 아래의 데이터를 추가한다.
+- META-INF/persistence.xml 에 아래의 데이터를 추가한다.
 
 ```xml
 <persistence version="2.2"

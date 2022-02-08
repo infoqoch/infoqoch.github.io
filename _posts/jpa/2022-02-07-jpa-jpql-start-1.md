@@ -1,9 +1,9 @@
 ---
 layout: post
 author: infoqoch
-title: jpa, jpql 의 기초
+title: jpa, jpql 의 기초 1
 categories: [jpa]
-tags: [jpa, jpql]
+tags: [jpa, java]
 ---
 
 ## JPQL 이란?
