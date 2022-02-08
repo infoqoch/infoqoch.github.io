@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: jpa join fetch
+title: jpa 페치 조인 join fetch
 categories: [jpa]
 tags: [jpa, java]
 ---
