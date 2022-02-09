@@ -168,7 +168,7 @@ class MemberRepositoryTest {
 
 ```java
 Member member = new Member();
-System.out.println(member.getOrders().getClass());
+System.out.println(member.getOrders().getC lass());
 em.persist(team);
 System.out.println(member.getOrders().getClass());
 //출력 결과
