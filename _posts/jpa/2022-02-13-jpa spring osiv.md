@@ -16,7 +16,7 @@ tags: [spring, jpa, rest]
 ## OSIV ON
 - 스프링이 동작할 때 처음에 아래와 같은 경고가 뜬다. 왜 그럴까? 
 
-```log file
+```log
 2022-02-13 22:03:32.276  WARN 13564 --- [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
 ```
 
