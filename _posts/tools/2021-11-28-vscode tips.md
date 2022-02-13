@@ -38,51 +38,65 @@ Ctrl + b, Ctrl + b : 메모장 전체 화면을 추가 (마크다운 사용시 �
 Alt + n : 새 폴더
 ```
 
-#### 사용자 문자열 자동완성 제안
+### 사용자 문자열 자동완성 제안
 - 설정 검색 키워드 : user snippets -> 원하는 포맷 검색 (markdown 등)
 
 - 나의 설정은 아래와 같음
  
 ```text
-"code block": {
-	"prefix": "코드블럭",
-	"body": [
-		"",
-		"```$1",
-		"```",
-		""
-	],
-	"description": "java block on MD"
-},
-"post init": {
-	"prefix": "게시글 작성",
-	"body": [
-		"---",
-		"layout: post",
-		"author: infoqoch",
-		"title: $1",
-		"last_modified_at: ",
-		"categories: []",
-		"tags: []",
-		"---",
-		""
-	],
-	"description": "post init on MD"
-},
-"link_newtab": {
-	"prefix": "링크 새창",
-	"body": [
-		"[$1](){:target='_blank'}"
-	],
-	"description": "post init on MD"
-}
+	"code block": {
+		"prefix": "코드블럭",
+		"body": [
+			"",
+			"```$1",
+			"```",
+			""
+		],
+		"description": "java block on MD"
+	},
+	"post init": {
+		"prefix": "게시글 작성",
+		"body": [
+			"---",
+			"layout: post",
+			"author: infoqoch",
+			"title: $1",
+			"last_modified_at: ",
+			"categories: []",
+			"tags: []",
+			"---",
+			""
+		],
+		"description": "post init on MD"
+	},
+	"link_newtab": {
+		"prefix": "링크 새창",
+		"body": [
+			"[$1](){:target='_blank'}"
+		],
+		"description": "post init on MD"
+	},
+	"img_mapping": {
+		"prefix": "이미지 연결",
+		"body": [
+			"![image](/assets/image/$1){:.aligncenter}"
+		],
+		"description": "post init on MD"
+	},
 ```
 - 마크다운의 코드블럭과 다른 것 사이에는 줄바꿈(\n)이 두번 필요하다(빈 문단이 하나 필요하다). 이를 자꾸 헷갈려서 코드블럭 위아래로 줄바꿈을 넣어줬음.
 - 지킬에서 블로그 포스트를 작성할 때 기본적으로 써야하는 내용을 추가하였음.
 - $1의 경우 커서 위치임. 여기에 원하는 포맷을 설정함.
 
 ### 플러그인
-- 맞춤법 검사기 vscode-hanspell 
-  -  설정 검색 -> 맞춤법
-- 날짜 문자열 넣기 : Insert Date String 
+- **Excel to Markdown table**
+  - 엑셀의 테이블을 마크다운 테이블로 변경. 강추!
+  - Shift+Alt+V
+- **Paste Image**
+  - 스크린샷을 원하는 폴더에 저장하고 markdown으로 이미지 연결. 강추!
+  -  Ctrl+Alt+V
+- Insert Date String 
+  - 날짜 문자열 넣기
   - Ctrl + Shift + i 
+- vscode-icons 
+  - 예쁜 아이콘
