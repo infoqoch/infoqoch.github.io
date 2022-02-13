@@ -1,8 +1,8 @@
 ---
 layout: post
 author: infoqoch
-title: spring, jpa api의 entity collection 조회 최적화2 (dto로 리턴)
-categories: [spring]
+title: jpa, spring api의 entity collection 조회 최적화2 (dto로 리턴)
+categories: [jpa]
 tags: [spring, jpa, rest]
 ---
 

@@ -1,8 +1,8 @@
 ---
 layout: post
 author: infoqoch
-title: spring, jpa api의 entity 조회 최적화(xToOne 연관관계)
-categories: [spring]
+title: jpa, spring api의 entity 조회 최적화(xToOne 연관관계)
+categories: [jpa]
 tags: [spring, jpa, rest]
 ---
 
