@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: spring rest controller 개발에서 entity 대신 dto를 리턴해야 한다. (특히 xToOne 관계에서)
+title: spring, jpa api의 entity 조회 최적화(xToOne 연관관계)
 categories: [spring]
 tags: [spring, jpa, rest]
 ---
