@@ -1,15 +1,26 @@
 ---
 layout: post
 author: infoqoch
-title: jpa, spring api의 entity collection 조회 최적화 (xToMany 연관관계)
+title: jpa, spring api의 entity 조회 최적화 2 - xToMany 연관관계와 엔티티 컬렉션 조회
 categories: [jpa]
 tags: [spring, jpa, rest]
 ---
 
+## 들어가며
+- xToOne 연관관계에 이어 xToMany 연관관계에서의 조회에 대한 최적화 방식을 정리한다.
+- xToOne은 관계형데이타베이스의 입장에서 다의 입장을 가지며, 이는 한방 쿼리와 페이징 처리가 수월하다.
+- xToMany는 일의 입장을 가지며, join을 수행할 경우 데이터 뻥튀기의 문제가 발생한다. 이로 인하여,
+    - 페이징 처리가 어렵다. 페이징은 다의 입장에서 수행되기 때문이다. 
+    - 한 방 쿼리가 사실상 불가능하다. 다의 입장에서 레코드를 출력하면 일의 데이터가 다의 칼럼에 중복되어 출력된다. 깔끔하게 떨어지는 쿼리를 만들기 어렵다.
+
+- 이에 대한 해결책으로
+    - 엔티티로 출력할 때는, xToOne에 대해서는 fetch 로 한 방 쿼리를 만들고, xToMany에 대해서는 batch를 통한 in 절 사용으로 최적화한다.
+    - dto로 출력할 때는, 쿼리의 최소화와 자바 코드의 복잡성 사이에 적절한 선택을 통해 해소한다.
+- 지금 블로그는 컬렉션 엔티티의 출력에 대한 내용을 다루며, 다음 블로그는 dto의 출력에 대하여 다룬다.
+
 ## Entity를 직접 노출하는 방식
 - Lazy 로딩이므로 프록시가 리턴된다. 이를 방지하기 위하여 Hibernate5Module 을 빈으로 등록한다. 
-- Order를 기준으로 Json을 리턴한다. 그러므로 order를 ManyToOne으로 가지는 모든 필드는 @JsonIgnore를 해야 한다. 
-- 아래의 쿼리는 앞서 블로그와 동일한 문제를 가진다. 엔티티를 api의 리턴값으로 해서는 안된다.
+- 이 방식은 다양한 문제를 가지며, 이에 관련한 내용은 앞서의 블로그에 정리하였다. 
 
 ```java
 @GetMapping("/api/v1/orders")
@@ -32,6 +43,7 @@ public List<Order> ordersV1(){
 ## entity를 DTO로 전환
 ### entity collection 의 wrapping
 - dto로 전환한다.
+- dto의 컬렉션 필드는 엔티티를 직접 받는다.
 
 ```java
 @GetMapping("/api/v2/orders")
@@ -54,6 +66,7 @@ static class OrderDto {
     private List<OrderItem> orderItems;
 
     public OrderDto(Order order) {
+        // 모든 연관관계는 지연로딩으로 처리되어 있다. 객체 그래프의 탐색으로 엔티티를 초기화한다. 트랜잭션 밖에지만 조회가 가능하다. 왜냐하면 open session in view 라는 기능을 스프링에서 제공하기 때문이다. 만약 그 기능을 끈다면 컨트롤러에서는 더는 객체 그래프로 엔티티를 초기화 할 수 없어 조회 불가능하다.
         orderId = order.getId();
         name = order.getMember().getName();
         orderDate = order.getOrderDate();
@@ -62,16 +75,14 @@ static class OrderDto {
 
         order.getOrderItems().stream().forEach(orderItem -> orderItem.getItem().getName()); // open session in view 이 동작하여 프록시를 초기화 한다.
         orderItem = order.getOrderItems();
-
     }
 }
 ```
 
-- dto 가 orderItems의 엔티티를 필드로 가진다. 이 경우 문제가 발생한다. api의 스펙이 entity에 의존하게 된다. 모든 entity를 dto로 변환해야 한다. 
-- 참고로, 컨트롤러에서 item 프록시를 엔티티로 초기화함을 볼 수 있다. 트랜잭션 밖이라도 객체 그래프로 엔티티를 초기화할 수 있는 기능을 스프링이 제공해준다. 이 기능의 이름을 'open session in view' 이라 한다. 
+- dto 가 orderItems의 엔티티를 필드로 가진다. 이 경우 문제가 발생한다. api의 스펙이 entity에 의존하게 된다. 엔티티를 리턴할 때와 동일한 문제에 봉착한다. 모든 entity를 dto로 변환해야 한다. 
 - 모든 엔티티를 dto로 변경한 코드는 아래와 같다. 
 
-### 모든 엔티티를 dto로 변환한다.
+### dto의 필드를 포함한 엔티티를 dto로 변환한다.
 
 ```java
 @Data
@@ -91,13 +102,9 @@ static class OrderDto {
         name = order.getMember().getName();
         orderDate = order.getOrderDate();
         orderStatus = order.getStatus();
-        address = order.getMember().getAddress();;
-
-        // orderItems 의 엔티티에 대하여 초기화해야 한다. 참고로, 트랜잭션 밖에지만 조회가 가능하다. 왜냐하면 open session in view 라는 기능을 스프링에서 제공하기 때문이다. 만약 그 기능을 끈다면 컨트롤러에서는 더는 객체 그래프로 엔티티를 초기화 할 수 없어 조회 불가능하다.
-        // 그러므로 이 경우 영속 상태의 객체를 wrapping 한 상태로 볼 수 있다.
-        // 영속성 자체에 대한 의존성을 완전하게 끊어내야 한다.
-
-//            order.getOrderItems().stream().forEach(orderItem -> orderItem.getItem().getName());
+        address = order.getMember().getAddress();       
+        
+//            order.getOrderItems().stream().forEach(orderItem -> orderItem.getItem().getName()); // 영속성 자체에 대한 의존성을 완전하게 끊어내야 한다.
         orderItems = order.getOrderItems().stream().map(orderItem -> new OrderItemDto(orderItem)).collect(Collectors.toList());
     }
 }
@@ -250,7 +257,6 @@ static class OrderItemDto{
         item0_.item_id=?
 ```
 
-
 ## fetch join
 ### fetch join 의 사용
 - fetch join으로 최적화 한다. 
@@ -325,10 +331,8 @@ public List<Order> findAllWithItem() {
 
 - 다만, 레코드의 뻥튀기 문제가 발생한다. json의 응답값은 아래와 같다. 동일한 값이 두 번 반복된다. 
 - 관계형 데이타베이스와 jpa 간 패러다임의 간격으로 인한 문제가 발생한다.
-- order를 기준으로 데이터를 꺼낸다. order은 many 이며 join 된 데이터는 one(orderItem, item)이다. 관계형 데이터베이스는 데이터의 출력 기준이 order라 하더라도 하나의 order에 연결된 one의 레코드가 여러 개이면, one의 갯수에 의존하여 order 가 반복 출력된다. 
-- 이로 인하여 아래와 같은 결과값이 나온다. order는 두 개이지만 orderItem과 item 은 각 각 네 개이다. 
-- jpa 네 개의 객체를 모두 반환한다. order 참조변수가 4개이며, 실제 메모리에는 2개의 객체가 있다.
-
+- order를 기준으로 데이터를 꺼낸다. order은 one이며 join 된 데이터는 many(orderItem, item)이다. 관계형 데이터베이스는 데이터의 출력 기준이 order라 하더라도 하나의 order에 연결된 many의 레코드가 여러 개이면, many의 갯수에 의존하여 one이 반복 출력된다. 
+- jpa의 출력 결과는 기본적으로 관계형 데이타베이스의 쿼리에 의존한다. 그 결과는 아래와 같다. 
 
 ```json
 [
@@ -436,7 +440,7 @@ for (Order order : all) {
 }
 ```
 
-```log file
+```log
 order = jpabook.jpashop.domain.Order@7b4be4ce
 order.getId() = 4
 order = jpabook.jpashop.domain.Order@7b4be4ce
@@ -448,9 +452,8 @@ order.getId() = 11
 ```
 
 ### distinct 의 사용
-- 이를 해소하기 위하여 distinct를 사용한다. distinct 는 **엔티티 입장에서** 중복을 제거한다. 
-- 하지만 관계형 데이타베이스 입장에서의 쿼리는 차이가 없다. 그러니까 리턴된 값은 이미 뻥튀기 된 데이타이며, 자바 메모리에서 정리를 한다. 
-- 참고로 관계형 데이타베이스에서 distinct를 통해 뻥튀기를 제거하려면, select 절에 걸린 모든 칼럼의 값이 동일할 때 제거가 된다. 그러므로 jpa의 입장에서 순수한 관계형 데이타베이스의 distinct 를 온전히 사용할 수 없다. 
+- 이를 해소하기 위하여 distinct를 사용한다. distinct는 **엔티티 입장에서** 중복을 제거한다. 관계형 데이터베이스의 distinct와 jpa의 distinct는 다르다.
+- 관계형 데이터베이스는 단 하나의 칼럼이라도 다르면 distinct가 동작하지 않는다. 하지만 jpa에게 distinct는 one의 입장에서 중복을 제거한다. 그러니까 order 객체의 중복이 제거된다. 
 
 ```java
 public List<Order> findAllWithItem() {
@@ -527,7 +530,7 @@ order.getId() = 11
 ```
 
 ### fetch join 의 페이징 처리의 한계
-- 하나의 쿼리로 해결하기 때문에 성능이 매우 좋아진다.
+- 하나의 쿼리로 해결하기 때문에 DB와의 통신 횟수로 인한 최적화가 가능하다.
 - 다만 치명적인 단점이 있다. **페이징 처리가 안된다**.
 
 ```java
@@ -548,8 +551,8 @@ public List<Order> findAllWithItem() {
 
 - limit 이 없다. 
 - 모든 데이터를 가지고 온 다음 메모라 차원에서 페이징한다. `firstResult/maxResults specified with collection fetch; applying in memory!`. 오더의 레코드가 엄청 많다면, 성능 상 매우 큰 문제가 발생한다.
-- 관계형 데이타베이스를 기준으로 order를 페이징할 수 없다. 왜냐하면 item 과 orderItem 기준으로 레코드가 발생하는데, 이를 기준으로는 페이징 가능하다. 하지만 order 입장에서의 페이징이 불가능하다.
-- join fetch를 여러 개 할 경우 데이터 정합성의 문제가 발생한다. 만약 페이징을 하더라도 반드시 **join fetch를 하나**만 사용해야 한다. 
+- 관계형 데이타베이스를 기준으로 order를 페이징할 수 없다. 관계형 데이타베이스를 기준으로, item 과 orderItem 기준으로 레코드가 발생하며 이를 기준으로 페이징이 가능하다. order 입장에서의 페이징을 할 기준이 존재하지 않기 때문이다. 
+- 추가적으로 jpa의 한계가 존재한다. xToMany에서 join fetch를 할 경우 데이터 정합성의 문제가 발생한다고 한다.
 
 
 ```sql
@@ -608,18 +611,15 @@ public List<Order> findAllWithItem() {
 
 - 결론적으로, **join fetch로 페이징을 하면 안된다!!**.
 
-
-## xToMany 관계에 대하여 fetch join을 쓰지 않고 lazy loading과 batch를 활용
+## xToMany 는 fetch join을 쓰지 않는다. lazy loading과 batch를 선택한다.
 - 관계형 데이타베이스에서는 many를 기준으로 row가 생성된다. 우리는 one을 기준으로 페이징을 하고 싶다. 
-- 그렇다고 모든 데이터를 지연로딩할 수 없다. 
 - 코드도 단순하고 성능도 해소할 수 있는 batch를 활용한다. 사실 이것 이외의 다른 대안이 없다고 한다. 
 
 ### 페이징 처리의 방향
-- 1) xToOne 관계는 fetch join을 한다. 그러니까 데이터가 뻥튀기가 되지 않는 쿼리의 경우, fetch join으로 페이징에 전혀 문제가 없다. 이를 기준으로 먼저 페이징한다!
-- 2) fetch join을 할 수 없는 데이터, xToMany는 지연로딩(lazy loading)을 한다. 그리고 batch를 사용한다.
+- 1) xToOne 관계는 fetch join을 한다. xToOne 만 존재하는 쿼리에서는 fetch join을 여러 번 사용하더라도 페이징에 전혀 문제가 없다. 이를 기준으로 먼저 페이징 한다. 
+- 2) xToMany의 데이터는 따로 쿼리한다. 지연로딩(lazy loading)과 batch를 사용하여 엔티티를 초기화한다.
 
-### 지연로딩 + batch
-
+### 코드
 - 배치를 위하여 아래와 같이 설정한다. 
 
 ```yml
@@ -642,6 +642,8 @@ public List<OrderDto> ordersV3_lazyAndBatch(
     // xToMany의 fetch join을 가져온다.
     final List<Order> all = orderRepository.findAllWithMemberDelivery(offset, limit);
 
+
+    // 지연로딩과 함께 dto를 생성한다.
     final List<OrderDto> collect = all.stream()
             .map(order -> new OrderDto(order))
             .collect(Collectors.toList());
@@ -651,7 +653,6 @@ public List<OrderDto> ordersV3_lazyAndBatch(
 ```
 
 - 리포지토리
-- fetch join 으로 페이징 가능한 xToOne 쿼리를 사용한다. 그리고 그 내부에서 페이징 처리 한다. 
 
 ```java
 public List<Order> findAllWithMemberDelivery(int offset, int limit) {
@@ -667,11 +668,9 @@ public List<Order> findAllWithMemberDelivery(int offset, int limit) {
             .getResultList();
 }
 ```
-
-- sql에서 in을 통해 한번에 땡겨온다. 
-- 코드로 작성하기 어려운 최적화를 아주 간단하게 처리해준다. 
-- fetch join 한 번, orderItem, item 에 대한 3 번의 쿼리만 발생한다. 1:n:n 이 1:1:1이 되었다. 
-- 이정도까지 최적화를 하면, 거의 대부분의 문제가 해소된다. 
+- 주문과 고객은 1:다 관계이다. 주문과 배송은 1:1 관계이다. 이 세 개의 엔티티는 fetch join 으로 출력한다. 그리고 페이징 처리를 이 때 수행한다. 
+- `new OrderDto(order)` 에서 객체 그래프를 사용하여 엔티티를 초기화한다. batch로 인하여 단 건마다 쿼리하지 않고 한 번에 처리한다. 
+- 그 결과는 아래와 같다. 
 
 ```sql
 2022-02-13 19:52:53.681 DEBUG 13436 --- [nio-8080-exec-2] org.hibernate.SQL                        : 
@@ -735,15 +734,15 @@ public List<Order> findAllWithMemberDelivery(int offset, int limit) {
         )
 ```
 
-- 지연로딩과 배치를 통한 방식의 장점은 페이징의 가능여부와 함께, 중복된 데이터가 없다는 장점이 있다. 
-- 1) fetch join을 통해 order를 필요로한 데이터 두 개만 DB에서 가져온다. 
-- 2) orderItem과 item의 경우 order 레코드를 제외하고 해당 엔티티에 대한 데이터만 가져온다. 
-- 이와 달리 fetch join으로 컬렉션을 가져올 경우, 단 쿼리로 해결하기 때문에 장점이 있다. 
+- 코드로 작성하기 어려운 최적화를 아주 간단하게 처리해준다. batch 설정만 하면 해결된다. 
+- fetch join 한 번, orderItem, item 에 대한 3 번의 쿼리만 발생한다. 1:n:n 이 1:1:1이 되었다. 
+- 지연로딩과 배치를 통한 방식의 장점은 매우 크다. 페이징이 가능하며, 중복된 데이터가 없다. 
+- 이정도까지 최적화를 하면, 거의 대부분의 문제가 해소된다. 
 
 ### [추가] fetch join을 아예 사용하지 않는다면?
-- 아래와 같이 Order만 사용할 수 있다. 
-- 그렇게 할 경우 member, delivery 가 추가적인 배치 조인으로 동작한다. order, member, delivery, orderItem, item 에 대하여 총 5개의 조인이 발생한다. 
-- 그러므로 할 수 있는 한 최대한 fetch join을 한다. 그리고 불가능한 부분에서 lazy + batch 를 사용한다. 
+- 아래와 같이 Order만 쿼리한다.
+- 이 경우 member, delivery 가 추가적인 배치 조인으로 동작한다. order, member, delivery, orderItem, item 에 대하여 총 5개의 조인이 발생한다. 
+- 가능한 최대한의 엔티티를 fetch join을 한다. 그리고 불가능한 부분에서 lazy + batch 를 사용한다. 
 
 ``` java
 final String query = "" +
@@ -754,13 +753,12 @@ final String query = "" +
 ```
 
 ### lazy + batch 정리
-- lazy의 1+n 이 1+1로 바뀐다.
-- 조인보다 DB 데이터 전송량이 최적화 된다. 그러니까 엔티티에 정확하게 맞는 데이터만 호출한다. 
-- 다만, 쿼리 호출수가 완전한 fetch join보다 많다. 
+- batch는 n+1의 문제를 1+1로 바꿔버린다.
+- 다만, 쿼리 호출수가 fetch join보다 많다. 한 방 쿼리가 아니다. 
 - fetch join과 달리 페이징이 가능하다.
 - 결론은,
-    - xToOne은 페이징에 영향이 없으므로 fetch join을 사용하며, 이를 기준으로 페이징을 한다. 그 다음에,
-    - xToMany에 대하여 lazy + batch 로 해결한다. 
+    - xToOne은 한 번에 fetch join을 사용하며, 이때 페이징을 한다. 그 다음에,
+    - xToMany 객체에 대하여 지연로딩 + batch 로 해결한다. 
 
 ### batch size는?
 - batch 의 최대 갯수는 기본적으로 1000 개이다. DB의 in 절의 인자의 갯수가 1000개인 DB가 있기 때문이다.

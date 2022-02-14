@@ -12,7 +12,7 @@ tags: [jpa, spring]
 ## 의존성 및 설정
 - 현재 환경은 spring boot, gradle, h2 이다.
 - `spring-boot-starter-data-jpa` 을 사용한다. 
-- JPA는 기본적으로 로깅 기능을 제공한다. 하지만 더 좋은 로깅을 위하여 `p6spy-spring-boot-starter` 을 사용한다.
+- JPA는 기본적으로 로깅 기능을 제공한다. 더 좋은 로깅을 위하여 `p6spy-spring-boot-starter` 을 사용한다.
 - 데이타베이스는 `com.h2database:h2`을 사용한다. 
   
 ```groovy
@@ -76,7 +76,7 @@ logging.level:
 ```
 
 ## 코드 작성
-- 영속성 컨텍스트를 가지고 온다. 
+- 영속성 컨텍스트를 가지고 온다.
 
 ```java
 @Entity
@@ -111,30 +111,18 @@ public class MemberRepository {
 ```
 
 - 테스트 및 수행한다.
-- 트랜잭션으로 엔티티매니저가 동작한다. 반드시 트랜잭션을 선언해야 한다. 
+- 트랜잭션으로 엔티티매니저가 동작한다. 반드시 @Transaction을 선언해야 한다. 
 - 리포지토리에서 em.persist로 영속화한 객체와 em.find로 찾은 객체의 동일성 비교가 true로 나온다. 실제로 find 할 때, select 쿼리가 발생하지 않았다. 
 
 ```java
 @SpringBootTest
-@Transactional
-@Rollback(value = false)
 // 엔티티매니저는 트랜잭션이 없으면 동작하지 않는다.
 // Transactional은 자바 표준이 아닌 스프링 사용
+@Transactional 
 class MemberRepositoryTest {
 
     @Autowired
     MemberRepository memberRepository;
-
-    /*
-        아래의 쿼리가 발생하고, find 때 select 쿼리가 발생하지 않음.
-        그 말은 repository -> test 로 넘어올 때 Member 엔티티가 같은 트랜잭션(영속성 컨텍스트) 안에 있음을 알 수 있음.
-        insert
-                into
-        member
-                (user_name, id)
-        values
-                (?, ?)
-*/
 
     @Test
     void test(){
@@ -150,14 +138,33 @@ class MemberRepositoryTest {
         //then
         Assertions.assertThat(member).isEqualTo(findMember); // 동등성 비교. 같은 엔티티임.
     }
-
 }
 ```
+
+- persist에서 insert 쿼리가 발생하고, find 때 select 쿼리가 발생하지 않음.
+- repository로 값이 리턴된다 하더라도, Transaction으로 묶여 있으면, 같은 영속성 컨텍스트임을 알 수 있다. 
+
+## 영속성 컨텍스트의 초기화
+
+```java
+final Long memberId = memberRepository.save(member);
+
+// 영속성 컨텍스트의 초기화
+em.flush(); // commit이 동작한다.
+em.clear(); // 영속성 컨텍스트를 초기화 한다.
+
+final Member findMember = memberRepository.find(memberId);
+```
+
+- 만약 위와 같이 수행할 경우 flush 할 때 insert 쿼리가 발생함을 확인할 수 있다. 
+- 동일한 영속성 컨텍스트 내부에서 insert는 트랜잭션이 종료하는 커밋 시점에서 진행된다. 이 말은, 하나의 트랜잭션에서 insert(persist)를 하고 select(find)한 객체는, db에 아예 들어가지도 않는, 영속성 컨텍스트 내부의 자바 메모리라는 의미이다. 그리고 rollback이 자동으로 수행되기 때문에, insert 자체를 수행할 일이 없다. 
+- 그러므로 영속성 컨텍스트를 초기화하는 방식과 더불어, @Rollback(falue)를 하더라도 insert 쿼리가 발생함을 확인할 수 있다. 왜냐하면 commit을 날리기 때문이다. 
+
 
 ## JPA 사용의 주의점
 ### setter를 사용하지 않는다. 
 - mybatis의 경우 query를 생성하기 전까지는 DB가 변경되지 않는다. 
-- jpa는 setter로의 변경만으로 데이터가 변경될 수 있다. 그러므로 setter를 사용하지 않는다. 
+- jpa는 영속 상태의 객체를 setter로의 변경하면 데이터가 바뀐다. setter를 사용하지 않고 별도의 매서드를 사용한다. 
 
 ### 연관관계를 설정 할 떄 패치 전략을 lazy로 한다.
 - 필요시 fetch join 을 사용한다. 
@@ -181,7 +188,9 @@ class org.hibernate.collection.internal.PersistentBag
 - 카멜케이스(자바) -> 언더스코어(sql) 전략을 사용한다. 
 
 ### 연관관계 편의 메서드를 사용한다.
-- 양방향을 사용할 경우, 영속성 컨텍스트가 자바 - DB간 패러다임의 불일치가 일어난다. 연관관계 주인에만 데이타가 있으면 자식의 데이터도 영속화 되는데, 자바 객체의 측면에서 연관관계 대상의 데이터는 변경되지 않는다. 이러한 격차를 없애기 위하여 연관관계 편의 메서드를 사용한다. 
+- 양방향을 사용할 경우, 영속성 컨텍스트가 자바 - DB간 패러다임의 불일치가 일어난다. 
+- 연관관계 주인만 대상 엔티티에 대한 데이터를 가져도 대상 엔티티의 데이터가 영속화 된다. 자바 객체의 측면에서는 대상 엔티티의 주인 필드의 데이터가 채워져 있지 않다. 엔티티와 자바 객체 간 격차를 없애기 위하여 연관관계 편의 메서드를 사용한다. 
+- 테스트 코드 작성에도 유리하다.
 
 ```java
 public void setMember(Member member){
@@ -189,3 +198,8 @@ public void setMember(Member member){
         member.getOrders().add(this);
     }
 ```
+
+### @Transactional(readOnly = true)
+- 트랜잭션이 있어야 영속성 컨텍스트를 사용할 수 있으며, DB와 통신 가능하다. 
+- 트랜잭션을 열어 놓으면 setter만으로 데이타가 변경된다. 이러한 위험을 보호하기 위하여, 서비스 레이어는 readonly를 한다. 
+- 실제 데이터를 변경할 메서드에만 @Transaction 을 붙인다.
