@@ -137,5 +137,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Query("select new qoch.datajpa.dto.MemberDto(m) from Member m where m.username in :names")
     List<MemberDto> findMemberDto(@Param("names") List<String> names);
 
-}```
+}
+```
 
