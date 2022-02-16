@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: spring-data-jpa 도메인 클래스 컨버터
+title: spring-data-jpa, web 확장 -도메인 클래스 컨버터
 categories: [jpa]
 tags: [jpa, spring]
 ---
