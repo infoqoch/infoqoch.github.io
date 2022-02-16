@@ -18,7 +18,6 @@ tags: [jpa, spring]
 
 
 ## page와 pagable
-
 - Page를 리턴으로 하고 Pagable 을 매개변수로 한다. 
 - Pagable에 Sort를 추가하여 정렬 기능을 넣을 수 있다. 
 - page의 시작은 0이다.
