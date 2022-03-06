@@ -108,10 +108,10 @@ now() = 2022-03-06T01:21:06.026354400
 - private은 상속할 수 없고 해당 클래스 내부에서만 사용 가능하다.
 - package-private(default)은 같은 패키지에 있는 경우에만 접근할 수 있다. 
 - protected는 상속한 경우 접근 가능하다. 
-- 상속으로 접근가능하다면 이는 공개되어 있는가 아니면 공개되어 있지 않은가? 공개 되어 있다고 본다. 상속을 허용하며 동시에 protected 나 public을 통해 상속을 통해 변경 가능하도록 열어두었다면, 이는 공개된 것과 다름 없다. 
-- 그러므로 반드시 공개하거나, 상속을 통해 변경 및 튜닝이 필요한 부분을 제외하고는, 가능하면 private 혹은 package-private을 한계로 한다. 
+- 상속을 할 수 있고, 상속을 통해 조작 가능한 데이터는 공개되어 있는 것과 같다. 그러니까 public을 포함한 protected는 접근 제어자로 공개한 것과 같다. 
+- 그러므로 protected는 상속을 통해 변경 및 튜닝이 필요한 부분에 대해서만 제한적으로 사용한다. 가능하면 private 혹은 package-private을 한계로 한다. 
 
-- 같은 패키지 내의 접근 예시
+### 같은 패키지 내의 접근 예시
 
 ```java
 public class AccessTest {
@@ -129,5 +129,129 @@ class PackagePrivateClass{
     static final String PACKAGE_PRIVATE_FIELD = "hi!";
     private static final String PRIVATE_PRIVATE_FIELD = "hi!";
 }
+```
+
+### 다른 패키지에서의 접근
+- 디렉토리가 access.a 이다. 상속하거나 접근할 대상이다. 
+
+```java
+package access.a;
+
+public class AccessTest {
+    public static final String PUBLIC_FIELD = "hi!";
+    protected static final String PROTECTED_FIELD = "hi!";
+    static final String PACKAGE_PRIVATE_FIELD = "hi!";
+    private static final String PRIVATE_PRIVATE_FIELD = "hi!";
+}
+```
+
+- 디렉토리가 access.b 이다. 앞의 클래스에 접근하고자 한다.
+
+```java
+package access.b;
+
+import access.a.AccessTest; 
+
+public class AccessTestTest {
+    public static void main(String[] args) {
+        // final String protectedField = AccessTest.PROTECTED_FIELD; // 컴파일 오류가 발생한다.
+        final String publicField = AccessTest.PUBLIC_FIELD;
+    }
+}
+
+class AccessExtends extends AccessTest{
+    public static void main(String[] args) {
+        final String protectedField = AccessTest.PROTECTED_FIELD; // 상속을 하니 protected 까지 접근 가능하다. 
+        final String publicField = AccessTest.PUBLIC_FIELD;
+    }
+}
+```
+
+## 인터페이스의 필드는 무조건 public 상수이다. 
+- 클래스에서 생성자를 누락할 경우 자동으로 기본 생성자를 생성해준다. 
+- 인터페이스의 필드 역시 예약어를 누락한다 하더라도 자동으로 public final static을 붙여 준다. 
+- 인터페이스의 메서드는 모두 public abstract이다. 
+- 인터페이스의 구현체는 리스코프의 원칙에 따라 하위 객체가 상위 객체로 치환되어야 한다. 그러므로 인터페이스 구현 객체는 언제나 public이어야만 한다. 
+
+```java
+public interface InterfaceJava8 {
+
+    String abc =  "abc";
+
+    LocalDateTime getDate();
+
+}
+```
+
+```java
+public class Main {
+    public static void main(String[] args) throws NoSuchFieldException, NoSuchMethodException {
+        final Field abc = InterfaceJava8.class.getDeclaredField("abc");
+        System.out.println("abc = " + abc);
+
+        final Method getDate = InterfaceJava8.class.getDeclaredMethod("getDate");
+        System.out.println("getDate = " + getDate);
+    }
+}
+```
+
+```log
+abc = public static final java.lang.String interfaces.a.InterfaceJava8.abc
+getDate = public abstract java.time.LocalDateTime interfaces.a.InterfaceJava8.getDate()
+```
+
+## 오버라이딩 없이 사용하는 매서드, static, default, java 8
+- 자바8 이전에는 모든 인터페이스 메서드는 abstract 메서드였다. 
+- 자바8 이후 구현하지 않고 사용할 수 있는 메서드 default 와 static이 생겼다.
+- default는 인스턴스에서 사용하고 static은 정적 메서드로 사용한다.
+
+```java
+public interface InterfaceJava8 {
+
+    String abc =  "abc";
+
+    LocalDateTime getDate();
+
+    default String defaultMethod(){
+        return "defaultMethod";
+    }
+
+    static String staticMethod(){
+        return "staticMethod";
+    }
+
+}
+```
+
+- 정적 매서드에 대하여 인터페이스에서 바로 static method를 호출함을 확인할 수 있다. 
+- 람다로 작성한 인터페이스 익명 구현 객체에서 default method를 호출함을 확인할 수 있다. 
+
+```java
+public class Main {
+    public static void main(String[] args) throws NoSuchFieldException, NoSuchMethodException {
+        System.out.println("InterfaceJava8.staticMethod() = " + InterfaceJava8.staticMethod());
+
+        final InterfaceJava8 interfaceJava8 = () -> LocalDateTime.now();
+        System.out.println("interfaceJava8.defaultMethod() = " + interfaceJava8.defaultMethod());
+
+    }
+}
+```
+
+```log
+InterfaceJava8.staticMethod() = staticMethod
+interfaceJava8.defaultMethod() = defaultMethod
+```
+
+- 마지막으로 Interface와 그것의 구현객체는 다음과 같다. 구현객체는 interface가 아닌 class임을 확인할 수 있다. 
+
+```java
+System.out.println("InterfaceJava8.class = " + InterfaceJava8.class);
+System.out.println("interfaceJava8.getClass() = " + interfaceJava8.getClass());
+```
+
+```log
+InterfaceJava8.class = interface interfaces.a.InterfaceJava8
+interfaceJava8.getClass() = class interfaces.b.Main$$Lambda$1/0x0000000800067040
 ```
 
