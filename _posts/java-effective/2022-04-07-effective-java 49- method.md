@@ -149,5 +149,85 @@ public class Period2 {
 - 통제권을 넘기더라도, 클라이언트의 조작으로 인한 문제는 클라이언트에 한정하도록 코드를 작성해야 한다.
 
 
+## 51. 메서드 시그니처를 신중히 설계하라
 
+### 메서드 이름을 신중히 짓자.
+- 표준 명명 규칙을 따른다. 
+- 패키지에 속한 이름들과 일관되게 짓는다.
+- 개발자 커뮤니티에서 널리 받아들여지는 이름을 사용한다.
+- 자바 라이브러리 Api를 참고한다.
 
+### 편의메서드를 너무 많이 만들지 말자.
+- 메서드가 복잡하면 클라이언트가 사용하기 어렵다. 가볍고 단순하게 한다.
+
+### 매개변수 목록을 짧게 유지하자.
+- 4개 이하를 유지한다.
+- 같은 타임의 매개변수가 연달아 나오도록 하지 않는다. 
+- 이를 위한 팁은 아래와 같다. 
+
+#### 1. 여러 메서드로 쪼갠다.
+- 리스트 객체가 있고, 그 객체의 특정 범위 중 특정 순서의 값을 꺼내고 싶을 수 있다.
+- 이 경우 subListAndGetIndexOf(int start, int end, int index); 의 형태로 구현하고 싶을 수 있다.
+- 하지만 이보다는 list가 구현한 subList와 get 메서드를 나누어 사용하는 것이 더 명확하고 직교성에 좋다. 
+
+```java
+@Test
+    void split_method(){
+        final List<Integer> list = List.of(1, 2, 3, 4, 5);
+
+//        list.subListAndGetIndexOf(1,4,1);  
+
+        final List<Integer> newList = list.subList(1, 4); // 1부터 4번째 값(2,3,4)를 꺼낸다.
+        final Integer target = newList.get(1); //2,3,4 중 두 번째 값인 3을 꺼낸다.
+        System.out.println("target = " + target);
+    }
+```
+
+##### 직교성?
+- 직교성이란 서로 영향을 주는 성분이 전혀 없고 독립적이란 의미이다. 
+- 한 객체의 메서드가 직교성이 있을 때 메서드를 줄여주고 매개변수를 단순하게 만들어주는 효과를 가져다 준다. 그러니까 subListAndGetIndexOf 와 같은 유사하지만 약간 다른 메서드가 수십개 있는 것보다, subList와 get이 두 개 있는 것이 더 단순하고 명확할 수 있다. 
+- 필요에 따라 직교성이 낮은 방식으로 구현할 수 있다. 특정 데이터를 db에서 추출할 때, entity를 단순하게 추출하여 자바 로직을 통해 복잡하게 dto를 리턴할 수도 있다. 그러나 상황에 따라 쿼리를 복잡하게 작성하여, 특정 상황에서만 사용할 수 있는 메서드가 여러 개를 구현하여, 성능이나 자바 로직을 단순하게 가져갈 수 있다. 
+
+#### 2. 매개변수를 여러 개 묶어주는 도우미 클래스를 만든다
+- 유사한 매개변수가 여러 메서드에서 반복되는 경우가 있다. 그리고 그런 메서드가 여러 개일 수 있다. 이 경우 해당 매개변수는 객체로 묶고, 유사한 메서드는 다른 클래스로 묶을 수 있다.
+
+#### 3. 앞서의 두 기법을 혼합하여, 객체 생성에 사용한 빌더패턴을 메서드 호출에 응용한다.
+- 매개변수를 추상화한 객체를 설정한 다음, execute 메서드를 호출해 앞서의 매개변수의 유효성을 검사한다. 해당 객체를 넘겨서 원하는 계산을 한다. 
+- 위의 내용, 그러니까 2와 3에 대한 예제가 존재하지 않아 명확하지 않게 느껴졌다. 예시로 든 카드 게임이 아마 아래와 같은 형태라고 상상하였고, 이를 코드로 구현하면 아래와 같은 형태가 되지 않을까 싶다. 
+- card_game_1 메서드는 String suit, String rank가 반복되고, 같은 타입의 매개변수이다.
+- card_game_2는 반복되는 매개변수를 Card 객체로 바꾼다. 그리고 CardGame 객체를 구현하는데, 해당 객체는 setUp 메서드로 Card 객체를 생성하여 불변객체로 가진다. game.guessCard로 두 개가 같은 값을 가지는지 비교한다. 이런 방식으로 클래스를 외부로 꺼내고 구현하는 것이 더 명확하고 깔끔하다.
+
+```java
+String suit;
+String rank;
+
+@Test
+void card_game_1(){
+    setGame("diamond", "6");
+    boolean isCorrect = guessCard("heart", "7");
+}
+
+private boolean guessCard(String suit, String rank) {
+    if(this.suit != suit) return false;
+    if(this.rank != rank) return false;
+    return true;
+}
+
+private void setGame(String suit, String rank) {
+    this.suit = suit;
+    this.rank = rank;
+}
+
+@Test
+void card_game_2(){
+    CardGame game = CardGame.setUp(CardSuit.DIAMON, CardRank.SIX);
+
+    boolean isCorrect = game.guessCard(new Card(CardSuit.HEART, CardRank.SEVEN));
+}
+```
+
+### 배개변수의 타입으로는 클래스보다는 인터페이스가 낫다.
+- setMap(HashMap<String> map) 보다는 setMap(Map<String> map)이 더 유연하고 낫다.
+
+### boolean 보다는 원소 2개짜리 열거 타입이 낫다.
+- setTemp(int value, boolean isCelsius) 보다  setTemp(int value, TemperatureScale.CELSIUS) 가 낫다.
