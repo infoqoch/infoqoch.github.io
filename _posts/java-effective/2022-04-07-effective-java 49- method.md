@@ -231,3 +231,147 @@ void card_game_2(){
 
 ### boolean 보다는 원소 2개짜리 열거 타입이 낫다.
 - setTemp(int value, boolean isCelsius) 보다  setTemp(int value, TemperatureScale.CELSIUS) 가 낫다.
+
+
+## 52. 다중정의는 신중히 사용하라
+
+> **재정의한 메서드는 동적으로 선택되고, 다중정의한 메서드는 정적으로 선택된다.**
+
+### 재정의된 메서드 중 선택되는 것은 개발자의 입장에서 직관적이다.
+- 메서드가 하위, 상위의 여러 클래스에서 재정의(override)가 되더라도, 초기화한 클래스의 메서드가 동작한다. 개발자가 기대하는 방식으로 동작한다.
+
+```java
+public class Overriding {
+    public static void main(String[] args) {
+        List<Wine> wineList = List.of(
+                new Wine(), new SparklingWine(), new Champagne());
+
+        for (Wine wine : wineList)
+            System.out.println(wine.name()); // 포도주 - 발포성 포도주 - 샴페인이 출력된다.
+    }
+}
+class Wine {
+    String name() { return "포도주"; }
+}
+
+class Champagne extends SparklingWine {
+    @Override String name() { return "샴페인"; }
+}
+
+class SparklingWine extends Wine {
+    @Override String name() { return "발포성 포도주"; }
+}
+```
+
+### 다중정의의 메서드의 선택 문제와 방안
+- 다중정의(overload)란 매개변수만 다른 같은 시그니처의 메서드의 묶음을 말한다.
+- 다중정의한 메서드 중 동작할 메서드를 선택할 때 컴파일 시점에서 결정한다. 이로 인하여 재정의에서 없었던 혼란이 발생한다. 아래의 코드를 확인해보자.
+
+```java
+import java.math.BigInteger;
+import java.util.*;
+
+public class CollectionClassifier {
+    public static String classify(Set<?> s) {
+        return "집합";
+    }
+
+    public static String classify(List<?> lst) {
+        return "리스트";
+    }
+
+    public static String classify(Collection<?> c) {
+        return "그 외";
+    }
+
+    public static void main(String[] args) {
+        Collection<?>[] collections = {
+                new HashSet<String>(),
+                new ArrayList<BigInteger>(),
+                new HashMap<String, String>().values()
+        };
+
+        for (Collection<?> c : collections)
+            System.out.println(classify(c));
+    }
+}
+```
+
+- 아래 main 메서드를 실행할 경우, 모두 "그 외"가 선택됨을 확인할 수 있다. 
+
+#### instanceof
+- 아래와 같이 instanceof 를 사용하여 해당 문제를 해소할 수 있다. 
+
+```java
+import java.math.BigInteger;
+import java.util.*;
+
+public class FixedCollectionClassifier {
+    public static String classify(Collection<?> c) {
+        return c instanceof Set  ? "집합" :
+                c instanceof List ? "리스트" : "그 외";
+    }
+
+    public static void main(String[] args) {
+        Collection<?>[] collections = {
+                new HashSet<String>(),
+                new ArrayList<BigInteger>(),
+                new HashMap<String, String>().values()
+        };
+
+        for (Collection<?> c : collections)
+            System.out.println(classify(c));
+    }
+}
+```
+
+#### 형변환 불가와 Wrapper class
+- instanceof도 좋지만 가장 근본적인 방식은 매개변수 최소 하나가 근본적으로 다른 경우, 그러니까 **형변환이 불가능한 경우** 앞서의 문제를 회피할 수 있다.
+- 예를 들면 Scanner를 초기화할 때의 매개변수를 들 수 있다. InputStream과 File은 상호 형변환이 불가능하다.
+
+```java
+package java.util;
+
+public final class Scanner implements Iterator<String>, Closeable {
+
+	// 중략 
+	public Scanner(InputStream source) {
+			this(new InputStreamReader(source), WHITESPACE_PATTERN);
+	}
+	public Scanner(File source) throws FileNotFoundException {
+        this((ReadableByteChannel)(new FileInputStream(source).getChannel()));
+    }
+	// 중략 
+
+}
+```
+
+- 한편, 자바5 이후로 제네릭이 생겼고, 이로 인한 오토박싱 문제로 다중정의의 문제가 발생했다.
+
+```java
+List<Integer> list = new ArrayList<>();
+list.add(1); // index 0
+list.add(2); // index 1
+list.add(3); // index 2
+
+System.out.println("list.remove(2) = " + list.remove(2)); // 인덱스 2로 동작한다.
+System.out.println("list.remove((Integer) 1) = " + list.remove((Integer) 1)); // Object인 값 Integer 1로 동작한다.
+System.out.println("list.toString() = " + list.toString());
+```
+
+```java
+package java.util;
+public interface List<E> extends Collection<E> {
+	// 중략
+	E remove(int index);
+	boolean remove(Object o);
+	// 중략
+}
+```
+
+- 위의 코드를 보면 remove가 기대하는 것과 다른 방식으로 동작함을 확인할 수 있다. list.remove(2) 은 index로서의 int가 사용되었고, list.remove((Integer) 1)) 은 자료구조 내 값으로서의 Object가 동작함을 확인할 수 있다. 
+- 이처럼 오토방식으로 인한 int와 Integer 간 문제가 존재한다. 
+
+#### 메서드의 이름을 다르게 하자.
+- 위의 방식보다 더 직관적이고 명확한 방법은 **메서드의 이름을 다르게** 한다. 특별한 이유가 있지 않는 한, 같은 이름으로 메서드를 만들 이유는 없다.
+- ObjectOutputStream은 그것의 매개변수에 따라 변수명을 설정했다. writeInt(int), writeLong(long) 등.
