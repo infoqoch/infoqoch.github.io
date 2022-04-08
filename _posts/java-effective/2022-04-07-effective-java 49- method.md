@@ -375,3 +375,145 @@ public interface List<E> extends Collection<E> {
 #### 메서드의 이름을 다르게 하자.
 - 위의 방식보다 더 직관적이고 명확한 방법은 **메서드의 이름을 다르게** 한다. 특별한 이유가 있지 않는 한, 같은 이름으로 메서드를 만들 이유는 없다.
 - ObjectOutputStream은 그것의 매개변수에 따라 변수명을 설정했다. writeInt(int), writeLong(long) 등.
+
+
+## 53. 가변인수는 신중히 사용하라
+- 가변인수 매서드는 명시한 타입의 인수를 0개 이상 받을 수 있다. 그러니까 아무것도 받지 않을 수 있다(v1).
+- 만약 배열이 0개가 아닌 한 개 이상임을 기대할 경우 아래(v2)와 같이 코드를 작성할 수 있다. 배열이 0개일 때 예외 처리를 한다.
+
+```java
+@Test
+void test_runtime() {
+	// v1
+	Assertions.assertThat(min(10,1,2,3,4,5)).isEqualTo(1);
+	// Assertions.assertThat(min()).isEqualTo(0); // expected: 0 but was: 2147483647
+
+	// v2
+	Assertions.assertThat(minV2(10,1,2,3,4,5)).isEqualTo(1);
+	Assertions.assertThatThrownBy(()->minV2())
+		.isInstanceOf(IllegalArgumentException.class)
+		.message().isEqualTo("0개 이상 입력하세요.");  // 런타임 에러 발생
+}
+
+int min(int... arg) {
+	int min = Integer.MAX_VALUE;
+	for(int i : arg) {
+		if(i<min)
+			min = i;
+	}
+	return min;
+}
+
+int minV2(int... arg) {
+	if(arg.length==0)
+		throw new IllegalArgumentException("0개 이상 입력하세요.");
+
+	int min = Integer.MAX_VALUE;
+	for(int i : arg) {
+		if(i<min)
+			min = i;
+	}
+	return min;
+}
+```
+
+- 한편, 위의 방식을 사용할 경우 런타임예외가 발생한다.
+- 컴파일 시점에서 오류를 잡아내기 위하여, 초기값을 매개변수에 명시한다. 해당 내용은 아래와 같다.
+
+```java
+@Test
+void test_compile() {
+	// v3
+	Assertions.assertThat(minV3(10,1,2,3,4,5)).isEqualTo(1);
+	minV3(); // 컴파일 에러 발생
+}
+
+int minV3(int firstint, int... arg) {
+	int min = firstint;
+	for(int i : arg) {
+		if(i<min)
+			min = i;
+	}
+	return min;
+}
+```
+
+- 위와 같이 가변인자와 함께 매개변수를 입력하여 코드를 더 명확하게 작성할 수 있다.
+- 가변인자는 그것의 갯수가 늘어날 때마다 배열을 새로 생성한다. 그러니까 성능 상 문제가 존재한다. 가변인자의 장점과 성능을 동시에 누리기 위하여 아래와 같은 형태로 코드를 작성하기도 한다. EnumSet 또한 아래와 유사한 형태로 다중정의가 되어 있다.
+
+```java
+int min(int first);
+int min(int first, int second);
+int min(int first, int second, int third);
+int min(int first, int second, int third, int... args);
+```
+
+## 54. null이 아닌, 빈 컬렉션이나 배열을 반환하라
+- (여담인데) 54장의 전제는 이미 초기화가 된 컬렉션 필드가 있다. 이 컬렉션은 값이 있을 수도 있고 없을 수도 있다. 불변객체를 유지하기 위하여 방어적 복사를 한 후 값을 리턴한다. 만약 이 때 해당 컬렉션이 빈 값일 경우, 어떻게 리턴하는 것이 좋은지를 논의하는 것이 이번 장의 목표이다. 이러한 전제가 명확하지 않아 나는 이해하는데 다소 시간이 걸렸다. 아무튼,
+
+- 방어적 복사를 한다면 `new ArrayList<>(target);` 의 형태로 전달하게 된다. 값이 있다면 당연하게 이 방식을 따라야겠지만, 만약 어떤 요소도 없다면 어떻게 할까? 초기화의 비용을 아끼기 위하여 null을 리턴할 수 있다. 
+
+```java
+// 특정 API를 구현했고, 불변객체로서 아래의 객체를 방어적 복사를 통하여 전달한다고 가정한다.
+// 상황에 따라 컬렉션에 어떤 값도 없을 수 있다. 이런 경우 어떤 식으로 전달하는 것이 가장 좋을까?
+private List<LocalDate> target = new ArrayList<>();
+
+List<LocalDate> getAttendanceNullable(){
+	return target.isEmpty() ?
+			null : // null을 반환환다.
+			new ArrayList<>(target); // 방어적 복사를 한다.
+}
+
+@Test
+void test_null() {
+	final List<LocalDate> attendance = getAttendanceNullable();
+	if(attendance !=null&& attendance.contains(LocalDate.now())) // !=null 이란 조건절을 추가해야한다. 
+		System.out.println("오늘 출석했구나. 아주 성실하구나?");
+}
+```
+
+- 컬렉션이 null일 경우, 예외를 피하기 위하여 !=null 등의 조건절을 굳이 삽입해야 한다. 
+- !=null 과 같은 조건절을 삽입하기보다 빈 컬렉션을 제공하는 것이 더 낫다. 코드가 더 명확하고 예상하지 못한 예외로부터 더 안전하다. 
+
+```java
+List<LocalDate> getAttendanceV1() {
+	// 초기화는 큰 성능을 요구하지 않는다. 
+	// 훨씬 깔끔하다.
+	return new ArrayList<>(target); 
+}
+
+@Test
+void test_empty(){
+	final List<LocalDate> attendance = getAttendanceV1();
+	if(attendance.contains(LocalDate.now()))
+		System.out.println("오늘 출석했구나. 아주 성실하구나?");
+}
+```
+
+- 초기화로 인한 성능저하는 거의 없다. 만에 하나 성능 이슈가 있다면 `Collections.emptyList();` 등 메서드를 활용할 수 있다. 초기화를 하지 않아 성능에 도움이 된다. 
+
+```java
+List<LocalDate> getAttendanceV2() {
+	return target.isEmpty()
+			? Collections.emptyList() 
+			: new ArrayList<>(target);
+}
+
+@Test
+void test_return_exist_empty(){
+	final List<LocalDate> attendance = getAttendanceV2();
+	if(attendance !=null&& attendance.contains(LocalDate.now()))
+		System.out.println("오늘 출석했구나. 아주 성실하구나?");
+}
+```
+
+- 만약 배열을 반환해야 한다면 아래와 같은 코드를 작성할 수 있다.
+- 참고로 빈 배열은 불변 객체이다.
+
+```java
+private final LocalDate[] EMPTY_ARRAY = new LocalDate[0];
+
+LocalDate[] getArray() {
+	return attendance.toArray(EMPTY_ARRAY);
+}
+```
