@@ -517,3 +517,29 @@ LocalDate[] getArray() {
 	return attendance.toArray(EMPTY_ARRAY);
 }
 ```
+
+## 55. 옵셔널 반환은 신중히 하라
+- 자바 8 이전에는 메서드가 특정 조건에서 값을 반환할 수 없을 때 1) 예외를 던지거나 2) null을 반환한다.
+- 예외를 던질 경우 이에 대한 비용이 발생하며, 실제로 그 상태가 예외 상황인지에 대한 의문이 발생한다.
+- null을 반환할 경우 null 에 대한 조건문 및 로직을 필요로 한다.
+- 자바 8 이후부터는 Optional 이란 선택지가 생겼다.
+
+### Optional
+- 옵셔널은 해당 메서드가 null을 리턴할 수 있음을 명시하기 위하여 사용한다. 그러니까 클라이언트로 하여금 이에 대한 로직을 구현하도록 요구한다. 
+- 결과값이 없을 경우, null 대신 Optional.empty() 을 반환한다. 옵셔널을 사용할 때 return null; 을 절대로 사용해서는 안된다. 옵셔널의 취지에 완전하게 어긋난다.
+- 값이 있을 때, Optional.of(obj)을 사용한다. Optional.ofNullable(obj) 와 같은 다른 옵션도 존재한다.
+- 리턴 받은 옵셔널 객체는 아래와 같은 다양한 메서드로 활용한다.
+	- optional.isPresent() : 기본적인 형태. 다른 활용도가 높은 메서드를 먼저 사용하고, 없을 경우 사용한다.
+	- optional.orElseThrow() : null일 경우 예외를 던진다.
+	- optional.orElseGet() : null일 경우 특정 값을 전달한다. orElse()와 다르므로 신중하게 사용한다.
+
+### 주의사항
+- 컬렉션, 스트림, 배열, 맵, 옵셔널은 옵셔널로 감싸지 않는다. Optional<List<T>> 보다 List<T>가 더 좋으며, list.size() == 0 이 더 명확한 코드이다. 
+- 옵셔널은 박싱을 하기 때문에, 이로 인한 성능 문제가 있다. 특히 박싱타입을 옵셔널로 한 번 더 감쌀 경우,  박싱을 두 번 하여 성능 문제가 곱절로 커진다. 다행히, 박싱타입을 위한 옵셔널이 존재한다. 
+
+```java
+OptionalLong optionalLong =  OptionalLong.of(1l);
+optionalLong.isPresent();
+```
+
+- 필요하다면 필드를 옵셔널로 박싱하여 사용할 수 있다. 이 경우 반드시 요구되지 않는 필드로서 명시하는 효과를 가진다.
