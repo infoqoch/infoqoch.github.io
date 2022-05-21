@@ -77,3 +77,5 @@ select count(*) from test; -- 2개
 - REPEATABLE READ가 사용자의 제한에 따라 락을 제어하였다면, SERIALIZABLE은 트랜잭션이 모든 SELECT 쿼리에 for share를 넣은 효과를 준다. 그러니까 s lock을 소유한다.
 - 락을 통해 팬텀리드를 완전하게 방지한다. 데이터에 대한 확실한 정합성을 보장한다. 
 - 다만 데드락으로 인한 일종의 예외, 동시성 문제로 인한 성능 문제가 발생한다.
+
+> https://www.letmecompile.com/mysql-innodb-transaction-model/
