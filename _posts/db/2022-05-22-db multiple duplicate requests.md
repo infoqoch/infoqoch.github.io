@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: db, uk가 없는 상태에서 중복되지 않은 레코드를 삽입하려면 어떻게 해야할까? x 락, update affected 검토
+title: db, uk가 없는 상태에서 중복되지 않은 레코드를 삽입하려면 어떻게 해야할까? x 락, update affected rows 검토
 categories: [db]
 tags: [db, sql, java]
 ---
@@ -61,7 +61,7 @@ void save(DoSomethingRequest req){
 
     // 쿼리 : select count(*) from second where seq = #{seq} for update;
     // 기대 : for update가 있으므로 어플리케이션이나 스레드의 갯수와 관계 없이 단 하나의 요청만 아래의 select을 할 수 있다. 나머지는 대기한다.
-    if(secondMapper.countDuplicateRecords(req)>0) // select count(*) from second where seq = #{seq};
+    if(secondMapper.countDuplicateRecords(req)>0)
         throw new IllegalArgumentException("second 테이블에 이미 존재하는 레코드가 있습니다.");
     secondMapper.save(reqToEntity(req)); // insert into second (....) values (.....);
     firstMapper.updateState(req, First.Done); // update first set state = 'DONE' where id = #{id} and state = 'NEW';
