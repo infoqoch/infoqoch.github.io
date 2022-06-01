@@ -22,7 +22,7 @@ void doSomething(DoSomethingRequest req){
 
 // service
 void save(DoSomethingRequest req){
-    if(!firstMapper.isNew(req)) // select count(*) from second where seq = #{seq};
+    if(!firstMapper.isNew(req)) // select count(*) from second where seq = #{seq} and status = 'NEW';
         throw new IllegalArgumentException("해당 레코드의 상태가 'NEW'가 아닙니다.");
     if(secondMapper.countDuplicateRecords(req)>0) // select count(*) from second where seq = #{seq};
         throw new IllegalArgumentException("second 테이블에 이미 존재하는 레코드가 있습니다.");
@@ -51,24 +51,26 @@ void save(DoSomethingRequest req){
     - 하지만 다른 요청이 동시에 들어왔다면? `countDuplicateRecords()>0` 이기 때문에 실제 검색한 데이터가 서로 다르더라도 두 트랜잭션 모두 전체 레코드에 대한 갭락을 가진다. 누구도 insert를 하지 못하는 데드락이 발생한다. 클라이언트 입장에서는 사용성이 떨어지며, 서버 입장에서는 굳이 필요 없는 락으로 인한 성능 문제가 발생한다. 
 
 ## 1차 시도 : 메서드는 무조건 한 스레드만 접근할 수 있게 with for update
-- 최초에 나는 x 락으로 이 문제를 해결하려고 하였다. 왜냐하면 s lock은 select에 대한 배타적 락을 가진다고 이해했기 때문이다. 더 나아가 insert는 자원을 많이 소비하지 않고 빠르게 처리하는 작업이기 때문에, 동기적으로 동작하더라도 전혀 문제가 없다고 생각했다.
+- 최초에 나는 x 락으로 이 문제를 해결하려고 하였다. 왜냐하면 x lock은 select에 대한 배타적 락을 가진다고 이해했기 때문이다. 더 나아가 insert는 자원을 많이 소비하지 않고 빠르게 처리하는 작업이기 때문에, 동기적으로 동작하더라도 전혀 문제가 없다고 생각했다.
 
 ```java
 @Transactional(isolation = Isolation.SERIALIZABLE)
 void save(DoSomethingRequest req){    
-    if(!firstMapper.isNew(req)) // select count(*) from second where seq = #{seq};
+    if(!firstMapper.isNew(req)) // select count(*) from second where seq = #{seq} and status = 'NEW';
         throw new IllegalArgumentException("해당 레코드의 상태가 'NEW'가 아닙니다.");
 
     // 쿼리 : select count(*) from second where seq = #{seq} for update;
     // 기대 : for update가 있으므로 어플리케이션이나 스레드의 갯수와 관계 없이 단 하나의 요청만 아래의 select을 할 수 있다. 나머지는 대기한다.
     if(secondMapper.countDuplicateRecords(req)>0)
         throw new IllegalArgumentException("second 테이블에 이미 존재하는 레코드가 있습니다.");
+
     secondMapper.save(reqToEntity(req)); // insert into second (....) values (.....);
+
     firstMapper.updateState(req, First.Done); // update first set state = 'DONE' where id = #{id} and state = 'NEW';
 }
 ```
 
-- 하지만 이것은 착각이었다. 앞서 블로그에서 정리한 바와 같이, 검색 결과가 없는 `select ... for update`는 마치 s 락과 같이 동작했다. 그러니까 여러 트랜잭션이 select을 할 수 있었다. 하지만 갱신에 대해서는 모든 위치에 대하여 데드락을 걸었다. (구체적인 내용은 앞의 블로그 참고). 
+- 하지만 이것은 착각이었다. 검색 결과가 없는 `select ... for update`는 마치 s 락과 같이 동작했다. 그러니까 여러 트랜잭션이 select을 할 수 있었다. 하지만 갱신에 대해서는 모든 위치에 대하여 데드락을 걸었다. 이에 대한 구체적인 내용은 앞서 블로그로 정리한 락, 트랜잭션 관련한 내용을 참고하자. 
 
 - 두 번째의 고민지점은, 어플리케이션 개발을 할 때, sql에 의존적인 방식으로 개발하는 것이 좋지 않다고 생각했다. 예를 들면 `select count(*) from seconds for update` 등 어떻게든 쿼리를 변경하여 select을 단 하나의 요청만 수 있도록 고민할 수 있다. 하지만 락에 대해 잘 이해하지 못하는 개발자가 수정할 수도 있지 않을까? 깨지기 쉬운 코드가 될 것 같다는 직감이 들었다. 
 - 그러므로 나는 다른 방법을 선택해야 했다.
@@ -89,22 +91,23 @@ update test set age = 11 where seq = 1 and age = 10 and name = 'kim'; -- 0 row(s
 - 이러한 원리를 통해 아래와 같은 로직을 만들 수 있다. 
 
 ```java
-// mapper, first table, void 에서 int로 리턴 타입을 변경한다.
-int updateState(...); // affected row의 갯수를 리턴한다.
+// firstMapper의 기존의 메서드는 void였다. 리턴 타입을 void에서 int로 변경한다. affected row의 갯수를 리턴한다.
+int updateState(...);
 
 // service
 void save(DoSomethingRequest req){
-    if(firstMapper.updateState(req, First.Done)==0)
+    if(firstMapper.updateState(req, 'DONE')==0)
         throw new IllegalArgumentException("해당 레코드의 상태가 'NEW'가 아닙니다.");
     secondMapper.save(reqToEntity(req)); // insert into second (....) values (.....);
 }
 ```
 
 - 이를 통해 더 단순하고 명확한 방식으로 문제를 해소할 수 있었다. 
-- first table에 대하여 select 후 update를 하던 로직을, update 한 차례로 줄였다. 격리수준이 REPEATABLE READ이기 때문에 여러 트랜잭션이 동시에 update 및  insert를 할 수 있어서 성능상 좋아졌다. 
+- first table에 대하여 select 후 update를 하던 로직을, update 한 차례로 줄였다. 
+- 격리수준이 REPEATABLE READ이기 때문에 여러 트랜잭션이 동시에 update 및  insert를 할 수 있어서 성능상 좋아졌다. 
 - first 테이블에서 update가 성공한 갯수를 기준으로 second 테이블에 insert를 하기 때문에, 다른 개발자가 보기에 직관적인 로직이 되었다. 
 
 ## 나아가며
 - DB에 잘 알지 못하는 상황에서 혼자 머리 싸매고 끙끙거려서 힘들었다. 하지만 트랜잭션이나 락 등에 대하여 잘 이해할 수 있는 기회가 되었다. 해결해서 기분도 무척 좋았다.
-- insert할 때 신중한 방식으로 DDL을 작성해야 함을 깨달았다. 어떤 이유로든 중복 요청이 들어갈 수 있으며, insert를 할 때 DB 차원에서 이를 잘 방어하는 형태로 구현해야 한다. 이런 상황에서 uk가 가장 구현하기 쉽고 단순한 방법이다. 이를 잘 활용해야 함을 느꼈다. 나중에 uk를 만드는 것은 무척 부담스러운 일이다.
+- insert할 때 신중한 방식으로 DDL을 작성해야 함을 깨달았다. 어떤 이유로든 중복 요청이 들어갈 수 있으며, DB 차원에서 이를 잘 방어하는 형태로 구현하는 것이 가장 이상적이다. 그러니까 uk가 가장 구현하기 쉽고 단순하며 확실한 방법이다. 설계 차원에서 이러한 DDL을 잘 구현해야 함을 깨달았다. 나중에 가서 uk를 설정하는 것은 무척 부담스러운 일이다.
 - 데이터 정합성 측면에서 데드락이 오히려 고마운 존재(?)임을 느끼게 된 계기가 되었다. 물론 결과적으로 없애야 할 에러이긴 하지만.
