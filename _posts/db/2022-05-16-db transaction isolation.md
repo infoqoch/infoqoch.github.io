@@ -35,8 +35,8 @@ tags: [db, mysql]
 
 ### phantom read 
 - 한편 격리수준 REPEATABLE READ은 select에 대해서는 동일한 레코드를 보장한다.
-- 하지만 갱신(INSERT, UPDATE, DELETE)을 한 레코드에 대해서는 그것의 결과를 보여줘야 한다. 그러니까 최신의 상태를 리턴한다. 이로 인한 정합성 문제가 발생할 수 있다. 이러한 문제로, 트랜잭션이 갱신을 한 경우 REPEATABLE READ가 깨지는 것처럼 보이는 현상이 나타난다. 이를 팬텀 리드라 한다. 
-- 아래의 코드는 그 예시이다. 트랜잭션 1과 2가 동시에 동작한다. 1은 정상 쿼리이며 2는 주석처리(--)된 쿼리이다. 트랜잭션 1은 이름만 'kim-li'로 변경하였는데, 해당 레코드를 읽었을 때 age 또한 변경된 것을 알 수 있다. 
+- 하지만 갱신(INSERT, UPDATE, DELETE)을 한 레코드에 대해서는 그것의 결과를 보여줘야 한다. 갱신한 레코드에 대해서는 언제나 최신의 값을 리턴한다. 이로 인한 정합성 문제가 발생한다. 갱신을 한 레코드에 대하여 REPEATABLE READ가 깨지는 현상이 나타나며 이를 팬텀 리드라 한다. 
+- 아래의 코드는 그 예시이다. 트랜잭션 1과 2가 동시에 동작한다. 주석처리(--)된 쿼리가 트랜잭션 2이다. 트랜잭션 1의 입장에서 이름만 'kim-li'로 변경하였는데 해당 레코드를 다시 읽었을 때 age 또한 변경된 것을 알 수 있다. 
 
 ```sql
 select * from test where seq = 1 and name = 'kim' and age = 10;
@@ -69,7 +69,7 @@ select count(*) from test; -- 1개
 -- insert into test(seq, name, age) values (2, 'lee', 15);
 -- commit;
 select count(*) from test; -- 1개
-update test set age = 12 where seq = 9;
+update test set age = 12 where seq = 2;
 select count(*) from test; -- 2개
 ```
 
