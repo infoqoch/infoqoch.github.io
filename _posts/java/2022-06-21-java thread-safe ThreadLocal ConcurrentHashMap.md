@@ -123,5 +123,8 @@ public synchronized boolean add(E e) {
 - DB에 여러 개의 어플리케이션이 접근할 수 있다고 하여 문제가 있다고 말하지 않는다. 그보다는 격리수준과 락을 적절하게 사용하여 하나의 트랜잭션이 의도하는 바에 따라 DB를 조회하고 갱신하는 것에 우리는 초점을 맞춘다.
 
 > 참고 
-> https://www.inflearn.com/questions/347336
+>
+> https://www.inflearn.com/questions/347336 
+>
 > https://cornswrold.tistory.com/209
+>
