@@ -1,7 +1,7 @@
 ---
 layout: post
 author: infoqoch
-title: java 동등성 및 동일성 비교와 SET의 갯수
+title: java equals와 hashcode, HashSet과 HashMap의 key 중복 판단 방식
 categories: [java]
 tags: [java]
 ---
