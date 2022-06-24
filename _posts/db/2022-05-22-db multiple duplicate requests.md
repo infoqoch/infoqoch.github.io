@@ -1,9 +1,9 @@
 ---
 layout: post
 author: infoqoch
-title: db, uk가 없는 상태에서 중복되지 않은 레코드를 삽입하려면 어떻게 해야할까? x 락, update affected rows 검토
+title: uk가 없는 상태에서 중복되지 않은 레코드를 삽입하려면 어떻게 해야할까? x 락, update affected rows 검토
 categories: [db]
-tags: [db, sql, java]
+tags: [db, sql]
 ---
 
 ## 들어가며

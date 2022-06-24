@@ -3,7 +3,7 @@ layout: post
 author: infoqoch
 title: db, x lock은 select에 대한 배타적 락을 보장하는가?
 categories: [db]
-tags: [db]
+tags: [db, sql]
 ---
 
 ## x 락은 동일한 select 쿼리에 대하여 배타적인 권한을 주는 것은 아니다.

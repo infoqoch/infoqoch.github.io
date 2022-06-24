@@ -3,7 +3,7 @@ layout: post
 author: infoqoch
 title: 데이터의 정합성을 고려한 개발을 위하여 
 categories: [db]
-tags: [db]
+tags: [db, sql]
 ---
 
 ## 들어가며

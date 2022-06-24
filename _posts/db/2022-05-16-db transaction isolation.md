@@ -3,7 +3,7 @@ layout: post
 author: infoqoch
 title: 트랜잭션의 격리수준
 categories: [db]
-tags: [db, mysql]
+tags: [db, sql]
 ---
 
 # 격리수준?
