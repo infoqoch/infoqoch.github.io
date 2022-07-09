@@ -3,7 +3,6 @@ layout: post
 author: infoqoch
 title: 테스트 환경을 복잡하게 만드는 요소들.. 대역과 프로파일, 리소스의 문제
 categories: [tdd]
-published: false
 tags: [tdd, spring]
 ---
 
