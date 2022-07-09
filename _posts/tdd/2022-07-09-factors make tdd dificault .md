@@ -19,6 +19,11 @@ tags: [tdd, spring]
     - 통합테스트(@SpringBootTest)에서의 메인(main)과 테스트(test)의 동시 호출 문제
     - 대역이나 유닛테스트의 인자로 전달할 대역 데이터 생성 로직 
 
+- 이러한 문제를 해소하는데 있어서 아래의 원칙을 지키고자 노력했다.
+    - 최대한 유닛테스트로 테스트한다.
+    - 통합 테스트를 할 때 최소한의 자원을 사용하도록 노력한다.
+    - main 파티션의 코드가 test 파티션 코드에 영향을 받는 코드를 최대한 작성하지 않는다.
+
 # 테스트와 대역 
 ## 대역의 필요성
 - 테스트에서의 대역은 다양한 의미를 가진다. 외부와 통신하는 api, 객체를 영속화 하는 리포지토리를 우리는 항상 실제를 사용할 수는 없다. 
@@ -101,7 +106,7 @@ public class MainController {
     }
 }
 
-// test/.../MainController.java
+// test/.../TestController.java
 @Controller
 public class TestController {
     @GetMapping("/main")
@@ -123,8 +128,8 @@ public class ApplicationTests {
         final Collection<URL> urls = ClasspathHelper.forPackage(UpdateDispatcher.class.getPackageName());
         for (URL url : urls) {
             // 결과가 두 개 나오며 그 url은 아래와 같다.
-            // url = file:/C:/Users/BAE/IdeaProjects/dictionary-v3/dictionary-bot/out/test/classes/
-            // url = file:/C:/Users/BAE/IdeaProjects/dictionary-v3/dictionary-bot/out/production/classes/
+            // url = file:/C:/Users/USER/IdeaProjects/dictionary-v3/dictionary-bot/out/test/classes/
+            // url = file:/C:/Users/USER/IdeaProjects/dictionary-v3/dictionary-bot/out/production/classes/
             System.out.println("url = " + url);
         }
     }
@@ -133,9 +138,8 @@ public class ApplicationTests {
 
 - 참고로 위의 url은 그래들 기준이다. 메이븐은 다음과 같은 경로를 가진다. `/test-classes` 
 
-- 나의 경우 리플렉션을 사용할 때, 유닛테스트 상황에서 대역을 통해 충분하게 테스트할 수 있었던 상황이다. 
-- 그러므로 나는 해당 리플렉션을 사용할 때, url을 오직 main의 리소스만 바라보도록 수정하였다. 이를 통하여 통합테스트를 할 때는 test에 있는 어너테이션에 영향을 받지 않는다.
-- 다만, 테스트와 관련한 코드가 메인에 위치하는 것이 좋은가에 대한 의문이 있다. 
+- 이에 따라 main 파티션에서 어너테이션을 읽을 때는 test 리소스가 있는 곳을 바라보지 않도록 하였다. 리플렉션과 관련한 테스트는 유닛테스트를 통해 충분하게 개발이 가능했기 때문이다. 
+- 다만, 테스트와 관련한 코드가 메인에 위치하기 때문에, 좋은 코드인가에 대한 고민이 있다. 
 
 ```java
 @Configuration
@@ -158,24 +162,24 @@ public class SomeAnnotationResolver{
 
 # 대역의 관리
 ## 대역 데이터
-- `@PostMapping("/order/")` 라는 api가 존재하고 json이 `ClientOrderRequest` 객체로 넘어온다고 가정한다.
-- Controller에서의 `ClientOrderRequest`를 검증한다. 그리고 `OrderRequest`로 변경 후 Service로 넘긴다. Service가 `OrderRequest`를 조금 변경하여 `Order`로 바꾼 후, repository에서 저장하는 흐름을 가진다.
+- `@PostMapping("/order/")` 라는 api가 존재하고 `json`이 `ClientOrderRequest` 객체로 넘어온다고 가정한다.
+- Controller에서의 `ClientOrderRequest`를 검증한다. 데이터를 약간 수정하여 `OrderRequest`로 변경 후 Service로 넘긴다. Service가 `OrderRequest`를 조금 변경하여 `Order`로 바꾼다. repository에서 `Order`를 저장한다.
 - 이때 각 레이어마다 테스트마다 필요로한 데이터는 다음과 같다.
     - Json
     - ClientOrderRequest
     - OrderRequest
     - Order
 
-- 더 나아가 Service에서 Order객체를 만들기 위하여 Orderer로서의 Member를 추출하고 상품인 Product를 추출해야 한다고 가정하자. 이때 OrderRequest로부터 Member와 Product를 추출하는 로직 또한 구현해야 한다. 
-- 이때 Service에서 OrderRequest를 필요로하는 엔티티는 다음과 같다.
+- 더 나아가 Service에서 Order객체를 만들기 위하여 Orderer로서의 Member를 추출하고 상품인 Product를 추출해야 한다. 이때 OrderRequest로부터 Member와 Product를 추출하는 로직 또한 구현해야 한다. 
+- 결과적으로 Service에서 OrderRequest를 필요로하는 엔티티는 다음과 같다.
     - Member
     - Product
     - Ship
 
 ## 대역 
 - 대역 또한 대역 데이터와 유사하다.
-- 인터페이스를 통한 컴퍼지션 패턴은 테스트를 위한 필수 불가결한 기능이다.
-- 한편, 상위 클래스를 테스트할 때는, 하위 클래스의 인터페이스 전체를 구현해야 하는 문제가 발생한다.
+- 인터페이스를 통한 컴퍼지션 패턴은 테스트를 위해 필수 불가결한 패턴이다.
+- 다만 문제가 있다. 상위 클래스를 테스트할 때는, 하위 클래스의 인터페이스 전체를 구현해야 한다.
 
 ```java
 public SomeHandlerTest{
@@ -183,7 +187,7 @@ public SomeHandlerTest{
 
     @BeforeEach
     void setUp{
-        // .... 상략 ....
+        // .... 전략 ....
         A1Repository a1Repository = new A1RepositoryImpl();
         AService aService = new AService(a1Repository, a2Repository)
         BService bService = new BService(b1Repository, b2Repository)
@@ -196,8 +200,7 @@ public SomeHandlerTest{
 - 다만, 대역 데이터와 마찬가지로 각각의 서비스 역시 공통 사용할 가능성이 매우 높다. 
 
 ## 대역의 관리
-- 그래서 나는 아래와 같은 방식을 채택했다.
-- Utils와 같은 스태틱 메서드를 관리하는 클래스를 생성한다. 그리고 변수로 사용할 부분에 대해서만 인자로 남기고, 나머지는 필요에 따라 리턴하도록 구현한다.
+- 각각의 대역에 대하여, 각각의 테스트 코드 마다 작성하기보다 factory를 만들기로 하였다. 변수로 사용할 부분에 대해서만 인자로 남기고, 나머지는 필요에 따라 리턴하도록 구현한다.
 
 ```java
 public class ClientOrderRequestGenerator{
@@ -230,14 +233,10 @@ public class SomeTest{
 }
 ```
 
-- 각각의 레이어와 엔티티에 맞춰 대역 데이터를 계속 생성한다는 것은 상당한 코드를 필요로 한다. 상당한 노동력과 상당한 중복을 요구받는다. 이는 상당한 스트레스로 사실 작용했다.
-- 나의 경우 결과적으로 static method를 통해 공통의 기능을 구현하는 것이 현실적인 대응 방안이 될 수밖에 없었다. 유닛테스트의 격리성에 다소 부정적이지만 어쩔 수 없었다. 
-- 그리고 이러한 대역은 "mock" 패키지를 생성하여 공통 관리하였다.
+- 각각의 레이어와 엔티티에 맞춰 대역 데이터를 계속 생성한다는 것은 상당한 코드를 필요로 한다. 상당한 노동력과 상당한 중복을 요구받는다. 사실 매우 피곤한 일이다.
+- 나의 경우 결과적으로 static 메서드를 구현하여, 단순하게 추출하는 방향으로 대응할 수밖에 없었다. 유닛테스트의 격리성에 다소 부정적이지만 어쩔 수 없었다. 
+- 이러한 대역은 "mock" 패키지에서 공통 관리하였다.
 
 # 나아가며
-- 테스트코드의 가치는 분명하다. 그러나 그 만큼 관리의 대상이 늘어난다. 그리고 테스트 과정에서 발생하는 복잡한 환경 문제를 해소해야 한다. 
-- 이러한 작업에서 몇 가지 원칙은 있었다. 
-    - 최대한 유닛테스트로 테스트한다.
-    - 통합 테스트를 할 때 최소한의 리소스를 사용한다.
-    - main 파티션의 코드가 test 파티션 코드에 영향을 받는 코드를 최대한 작성하지 않는다.
-- 테스트주도개발 과정에서 겪었던 문제와 해결한 방법을 나열하였다. 이러한 방식이 좋은 방안인지는 좀 더 경험해봐야 알 것 같다. 그러므로 현재 블로깅한 글은 계속 리팩터링 될 예정이다.
+- 테스트코드의 가치는 분명하다. 그러나 그 만큼 관리의 대상이 늘어난다. 그리고 테스트 과정에서 발생하는 복잡한 환경 문제를 해소해야 한다. 이 과정에서 겪었던 문제와 해결 방안을 나열해보았다. 
+- 이러한 방식이 좋은 방식인지는 좀 더 경험해야 알 것 같다. 지금의 글은 계속 리팩터링 될 예정이다.
