@@ -17,3 +17,8 @@ pre {
     align-items: center;
     justify-content: center;
 }
+
+.highlight pre{
+    white-space: pre-wrap;
+}
+  
