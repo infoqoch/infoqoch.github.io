@@ -39,6 +39,8 @@ public class Product{
 ```
 
 - mybatis로 구현할 경우 위와 같은 형태로 insert 코드를 작성한다. 위의 형태로 데이터가 영속화되어 있다고 가정하며, 해당 데이터를 update를 하면 어떻게 해야 할까? 
+
+##  1. 기본타입(+ Wrapper type) 각각을 인자로 한다. 
 - stock 을 늘린다고 가정하자.
 
 ```xml
@@ -70,7 +72,10 @@ public interface ProductMapper{
 ```
 
 - 위의 코드는 무척 장황하다. 비슷한 메서드가 많고, 매개변수도 복잡하게 나열되어 있다.
+
+##  2. 매개변수를 하나의 객체로 통일한다.
 - 복잡한 매개변수부터 해결하자. 먼저 매개변수를 하나의 객체로 하여 단순하게 만들어보자. 기존에 사용하는 Product 를 사용하면 아래와 같은 코드로 작성할 수 있다. 
+- 각 매퍼마다 필요로 한 필드는 다르지만 정상 동작함을 확인할 수 있다. mybatis의 경우 필요로한 필드에 값만 존재하면 어떤 데이터 타입이 전달되더라도 상관 없다. 사실 map을 전달하는 것과 큰 차이가 없다. 
 
 ```java
 public interface ProductMapper{
@@ -79,19 +84,20 @@ public interface ProductMapper{
     void updateStockAndPrice(Product product);
     void updateDetail(Product product);
 }
-
-// client
-
-Product product = new Product(?, ?, ?); // Product의 필드는 매우 많다. 그 중 무엇을 삽입해야 하는가? 
-productMapper.updateStock(product); // updateStock의 쿼리를 확인하고 productId와 stock, modId가 필요함을 확인하였다. 
 ```
 
-- 하지만 위의 코드의 매개변수인 Product는 치명적인 문제를 가지고 있다. 필요로하는 필드와 필요하지 않는 필드가 무엇인지 확인할 수 없다. 해당 코드를 읽고 유지보수하거나 수정하거나 새로운 기능을 구현하는 사람 입장에서, Product는 그 어떤 정보를 제공하지 않는다. update를 위하여 필요한 필드와 필요하지 않은 필드가 무엇인지 알 수 없다. 결국 쿼리를 확인해야 한다. 쿼리를 확인해야한다는 말은, Product란 매개변수로서의 신뢰성이 없다는 것과 같다. 
-- 다만, 쿼리 자체는 직관적으로 작성되었기 때문에 빠르게 확인할 수는 있을테다. 비록 Product에 어떤 필드를 채워야 할지는 모르지만, 명확한 메서드명 때문에 어떤 동작을 할지에 대해서는 쉽게 판단할 수 있다. 
+- 다만, 이를 유지보수하는 입장에서는 sql에 더 의존적인 문제를 일으킨다. 
+- `updateStock` 메서드를 사용할 때, Product의 필드 중 무엇이 반드시 들어가야되는지 알 수 없다. 결국 sql을 재검토해야 하는 일이 발생한다. 자바 매서드에 대한 신뢰가 사라진다.
 
-- 필요한 필드와 필요 없는 필드가 복잡하게 섞인 것에 한계를 느끼며, 아래와 같이 각각의 메서드에 대한 dto를 만들 수도 있다. 
+```java
+Product product = new Product(?, ?, ?); // Product가 가진 필드는 많다. 그 중 무엇을 삽입해야 updateStock이 정상 동작하는가? 
+```
+
+
+## 3. 매서드마다가 각각의 매개변수를 가진다.
+- 하나의 통일된 객체를 매개변수로 사용하는 것은 한계가 있다. 필요한 필드와 필요 없는 필드를 판별할 수 없어 사실 map 객체를 쓰는 것과 차이가 없다. 이를 극복하기 위하여 각각의 메서드에 대한 dto를 만들 수도 있다. 
 - 장점은 분명하다. 각 메서드마다 필요한 값이 무엇인지 분명하게 알 수 있다. 그리고 각각의 메서드마다 사용하는 객체가 다르기 때문에, 수정 및 유지보수에 있어서도 사이드이펙트를 최소화 할 수 있다.
-- 하지만 매서드마다 dto를 각각 사용하기 때문에 장황하다.
+- 다만, 매서드마다 dto를 각각 사용하기 때문에 다소 장황하다.
 
 ```java
 public interface ProductMapper{
@@ -102,7 +108,10 @@ public interface ProductMapper{
 }
 ```
 
-- 메서드와 dto를 하나로 둘 수도 있다. 이는 mybatis의 동적인 기능을 통해 해소할 수 있다. <if> 등 마이바티스의 태그를 활용하는 방식이다. 
+## 4. `<if>` 태그를 활용하여 원하는 칼럼만 변경하는 동적 쿼리를 생성한다. 
+- 매서드마다 객체가 존재하여 장황하다고 판단할 수 있다. 
+- 기존으로 돌아가 update 매서드를 단 하나만 두고, 이에 사용할 객체 역시 단 하나만 둔다. 2번의 방식과 동일하다.
+- 다만 다른 점은,  mybatis의 동적인 기능을 통해, 정확하게 필요로 한 칼럼에 대해서만 동적 쿼리를 작성한다. `<if>` 등 마이바티스의 태그를 활용하여 구현할 수 있다. 
 
 ```java
 public interface ProductMapper{
@@ -116,7 +125,7 @@ productMapper.update(new Product(productId, null, null, stock, null, modId)); //
 ```xml
 <insert id="updateStock">
     update product
-    set 
+    set
         <if test="stock!=null and !stock.equals('')">
         stock = #{stock}
         </if>
@@ -132,25 +141,23 @@ productMapper.update(new Product(productId, null, null, stock, null, modId)); //
 </insert>
 ```
 
-- update할 칼럼을 <if> 태그를 통해 구분한다. 구분의 기준은 값의 empty 여부이다.
-- 하나의 매서드와 하나의 매개변수를 사용하기 때문에 편리하다.  수정하지 않는 데이터에 대해서 null이나 ""를 대입하기 때문에 다소 명확하다. 다만, 값으로서의 null을 삽입하려 하는 경우 문제가 발생한다.
-
-- 한편, 리팩토링을 접하고 jpa를 학습하면서 mybatis를 통한 객체지향적 개발이 가능하냐에 대한 의문이 항상 있었다. jpa를 통해 힌트를 얻을 수 있었다. jpa는 더티체킹을 통해 update를 한다. 아래는 그 예시이다.
+## 5. select 후 update 하기
+- if문을 통한 방법은 편리하지만 null과 같은 의도를 반영할 수 없다. 
+- sql문에 대한 세세한 조작은 불가능하다는 것을 인정하고, 단순하게 처리할 수 있다. 
+- jpa가 특정 객체를 영속성 컨텍스트에 호출한 후, 필요한 필드를 변경한 뒤, 더티체킹으로 데이터를 갱신한다. 그러한 방식을 활용하되, mybatis는 더티체킹을 할 수 없으므로, `repository.update(product);` 메서드만 추가한다.
 
 ```java
-@Transactional
 void updateStock(int updateId, int stock){
-    Product product = productRepository.getOne(updateId); // select * from product where update_id = #{updateId}로 데이터를 추출 및 자바 객체로 변환한다.
-    product.changeStock(stock); // 입력한 stock의 유효성 등을 검사한다. 그리고 정상동작할 경우 입력한 인자와 내부의 로직에 따라 stock 데이터를 변경한다. 
-} // 트랜잭션이 종료되면 더티체킹으로 인하여 변경된 필드에 대해서만 update하는 쿼리가 발생한다.update product set stock = 15 where update_id = #{updateId} 라는 형태가 될 것이다. 
+    Product product = productMapper.getOne(updateId);
+    product.changeStock(stock); 
+    productMapper.update(product);
+} 
 ```
-
-- 위와 같이 온전한 Product 객체를 select을 통해 구현하고, 변경할 필드에 대해서 수정을 하고, 해당 객체를 update할 수 있다. 그 예제는 아래와 같다. 
 
 ```xml
 <insert id="update">
     update product
-    set <!-- 아래에 없는 칼럼은 updatable 하지 않다고 볼 수 있다. -->
+    set <!-- 아래의 칼럼은  updatable 한 칼럼이라고 볼 수 있다. -->
         stock = #{stock}
         price = #{price}
         product_name = #{productName} 
@@ -160,19 +167,27 @@ void updateStock(int updateId, int stock){
 </insert>
 ```
 
+- 기존의 데이터(getOne)를 기반으로 수정하기 때문에 데이터의 정합성 문제는 발생하지 않는다.
+- 다만, select 쿼리를 한 번 더 호출하는 문제가 발생한다. jpa와 달리 영속성 컨텍스트가 필요 없는 mybatis는, pk만 정확하다면 바로 쿼리를 날리는 것이 더 빠르고 효율적이다.
+
 ```java
-void updateStock(int updateId, int stock, String modId){
-    Product product = productMapper.getOne(updateId);
-    product.changeStock(stock); 
-    product.setModId(modId); 
-    productMapper.update(product); // jpa는 영속성 컨텍스트로 인하여 이와 같이 영속화를 위한 메서드를 필요로 하지 않다. 
+void updateStock(int updateId, int stock){
+    // Product product = productMapper.getOne(updateId);
+    // product.changeStock(stock); 
+    
+    // 굳이 위의 두 과정을 지킬 필요가 없다.
+    productMapper.updateStock(updateId, stock); 
 } 
 ```
+## 정리
+- 다섯 가지 패턴으로 mybatis와 함께 리포지토리를 구현해봤다. 각 패턴의 변수는 다음과 같다. 매서드 : 1개 vs 여러개. 인자 : 기본타입들 vs 여러 객체 vs 객체 하나. 
+- 마지막 방법의 경우 select을 반드시 추가하는 형태를 취하였다. 
+- mybatis로 개발하면서 내가 주로 사용하는 방법은 다섯 번째 방법과 세 번째 방법이다.
+- 데이터를 갱신하는 커맨드의 경우 다섯 번째 방법을 사용한다.
+    - 클라이언트의 데이터를 신뢰할 수 없기 때문이다. 클라이언트의 데이터를 믿고 그냥 `updateStock(updateId, stock)`로 데이터를 밀어 넣는 것은 위험하다. 
+    - 클라이언트가 전달한 데이터를 select을 통해 검증하고 update를 하는 것이 더 안전한 방법이다. 
+    - 어차피 select으로 기존 데이터를 가지고 있는 상태이면, 변경된 데이터에 대해서만 해당 객체를 수정하고, 그 객체를 update를 위한 매개변수로 전달하는 것이 간단하고 직관적이다.
+- 쿼리의 경우 세 번째 방법을 사용한다. 
+    - 쿼리는 각각의 요구사항에 따라 sql문 자체가 달라져 버린다. 필요로 한 필드 값도 전부 다르다. 이를 하나의 매서드나 하나의 매개변수처리하는 것보다, 처음부터 완전하게 분리하여 개발하는 것이 편하다.
 
-- <if> 태그에서 null과 equals를 통해 변경할 데이터를 판별하는 방식보다는 좀 더 나은 방식임은 분명하다. 하지만 jpa의 더티체킹보다는 열등한 방식이다. 왜냐하면 더티체킹은 변경된 필드에 대해서만 set 절에 삽입하는 반면, mybatis는 쿼리에 있는 모든 칼럼을 수정하기 때문이다. 
-
-### 정리
-- 네 가지 패턴으로 mybatis와 함께 리포지토리를 구현해봤다. 첫 번째는 각각의 매개변수를 활용, 두 번째는 메서드 마다 정확하게 필요로한 필드만 가지는 객체를 사용, 세 번째는 공통의 객체와 메서드를 사용하되 변경할 칼럼을 null이나 empty를 통해 판별하는 방식, 마지막은 select을 통해 데이터를 호출하고 그 중 수정이 필요한 부분에 대해서 변경 및 영속화하는 방식이다. 
-- 지금까지 나는 필요에 따라 (아니면 아무런 고민 없이 손에 잡히는 대로) 위의 방식을 섞어서 개발해왔다. 다소 반성을 하며, SQL Mapper과 함께 객체지향적으로 개발할 경우 어떤 식으로 해야할지에 대한 정리하는 시간을 가질 수 있었다. 
-- 내 생각에는, 객체지향적 개발을 한다면 마지막 방법이 가장 나은 방법이다. 온전한 객체를 호출하고 해당 객체 전체를 DB에 저장하는 형태이기 때문이다. 하지만 매개변수를 통해 변경되는 데이터를 명확하게 표현하는 첫 번째와 두 번재 방법 역시 좋은 방법이라 생각한다. 단순하고 명확하다. 
-- sql을 직접 다루는 mybatis는 직관적으로 개발 할 수 있다는 장점이 있다. 다만, SQL을 짜는 것에 따라 영속화하는 방식이 다소 너무 자유로운 문제가 있다고 생각한다. 개발에는 일관된 규칙이  필요하다고 생각한다. 자유는 규율 속에서 존재하는 법이다. 그래서 불편하지만 네 번째 방법을 주로 사용하며, update 혹은 insert batch를 사용할 때만 한정적으로 두 번째 방법을 사용해야하지 않을까 싶다.
+- sql을 직접 다루는 mybatis는 직관적으로 개발 할 수 있다는 장점이 있다. 다만, 인자에 대해서는 불필요하게 열려 있어 개발함에 있어 엄밀한 코드를 작성하기 어렵다. map을 매개변수로 전달하는 것과 큰 차이가 없다. 그렇기 때문에 모델에서 상황에 맞춰 인자를 명확하게 한정하는 것이 중요하다. 자유는 규율 속에서 존재하는 법이라 생각한다.
